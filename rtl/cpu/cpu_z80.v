@@ -17,7 +17,9 @@
 // Z80 CPU plug into TV80 core
 
 module cpu_z80(
-	input CLK_4M,
+	input CLK_24M,
+	input CLK4P_EN,
+	input CLK4N_EN,
 	input nRESET,
 	input [7:0] SDD_IN,
 	output [7:0] SDD_OUT,
@@ -31,10 +33,11 @@ module cpu_z80(
 	wire RFSH_n, MREQ_n;
 	assign nMREQ = MREQ_n | ~RFSH_n;
 
-	T80s cpu(
+	T80pa cpu(
 		.RESET_n(nRESET),
-		.CLK(CLK_4M),
-		.CEN(1),
+		.CLK(CLK_24M),
+		.CEN_p(CLK4P_EN),
+		.CEN_n(CLK4N_EN),
 		.WAIT_n(nWAIT),
 		.INT_n(nINT),
 		.NMI_n(nNMI),
@@ -43,6 +46,7 @@ module cpu_z80(
 		.RD_n(nRD),
 		.WR_n(nWR),
 		.RFSH_n(RFSH_n),
+		.BUSRQ_n(1'b1),
 		.A(SDA),
 		.DI(SDD_IN),
 		.DO(SDD_OUT)

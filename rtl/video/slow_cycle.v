@@ -58,24 +58,26 @@ module slow_cycle(
 	
 	output [14:0] SVRAM_ADDR,
 	//input [15:0] SVRAM_DATA,
-	input [15:0] SVRAM_DATA_IN,
+	input [31:0] SVRAM_DATA_IN,
 	output [15:0] SVRAM_DATA_OUT,
 	output BOE, BWE,
 	
-	output [14:0] FIXMAP_ADDR		// Extracted for NEO-CMC
+	output [14:0] FIXMAP_ADDR,		// Extracted for NEO-CMC
+	output [14:0] SPRMAP_ADDR,
+	output [1:0] VRAM_CYCLE         // Hint to SDRAM controller (10 - Sprite map read, 01 - CPU R/W, 00 - fixmap read)
 );
 
 	wire [14:0] B;
 	wire [15:0] E;
 	wire [15:0] FIX_MAP_READ;
 	//wire [14:0] FIXMAP_ADDR;
-	wire [14:0] SPRMAP_ADDR;
+	//wire [14:0] SPRMAP_ADDR;
 	wire [3:0] D233_Q;
 	wire [3:0] D283_Q;
 	wire [3:0] Q162_Q;
 	
 	assign SVRAM_ADDR = B;
-	assign E = SVRAM_DATA_IN;
+	assign E = SVRAM_DATA_IN[15:0];
 	assign SVRAM_DATA_OUT = VRAM_WRITE;
 
 	// CPU read
@@ -90,11 +92,15 @@ module slow_cycle(
 	
 	// Sprite map read even
 	// H233 C279 B250 C191
-	FDS16bit H233(~CLK_SPR_TILE, E, SPR_TILE[15:0]);
+	//**Gyurco** latch later (same time as even address) to make us of 32 bit VRAM reads
+	//FDS16bit H233(~CLK_SPR_TILE, E, SPR_TILE[15:0]);
+	FDS16bit H233(D208B_OUT, E, SPR_TILE[15:0]);
 	
-	// Sprite map read even
+	// Sprite map read odd
 	// D233 D283 A249 C201
-	FDS16bit D233(D208B_OUT, E, {D233_Q, D283_Q, SPR_TILE[19:16], SPR_AA_3, SPR_AA_2, SPR_TILE_VFLIP, SPR_TILE_HFLIP});
+	//**Gyurco** latch second word from 32-bit read
+	//FDS16bit D233(D208B_OUT, E, {D233_Q, D283_Q, SPR_TILE[19:16], SPR_AA_3, SPR_AA_2, SPR_TILE_VFLIP, SPR_TILE_HFLIP});
+	FDS16bit D233(D208B_OUT, SVRAM_DATA_IN[31:16], {D233_Q, D283_Q, SPR_TILE[19:16], SPR_AA_3, SPR_AA_2, SPR_TILE_VFLIP, SPR_TILE_HFLIP});
 	FDSCell C233(Q174B_OUT, D233_Q, SPR_PAL[7:4]);
 	FDSCell D269(Q174B_OUT, D283_Q, SPR_PAL[3:0]);
 	
@@ -117,7 +123,8 @@ module slow_cycle(
 					~N160_Q ? SPRMAP_ADDR : 15'd0
 					:
 					~N160_Q ? FIXMAP_ADDR : VRAM_ADDR;
-	
+
+	assign VRAM_CYCLE = {~N165_nQ, N160_Q};
 	assign FIXMAP_ADDR = {4'b1110, O62_nQ, PIXEL_HPLUS, ~PIXEL_H8, RASTERC[7:3]};
 	assign SPRMAP_ADDR = {H57_Q, ACTIVE_RD, O185_Q, SPR_TILEMAP, K166_Q};
 	

@@ -53,7 +53,7 @@ module lspc2_a2(
 	output LSPC_4M,
 	
 	output [14:0] SVRAM_ADDR,
-	input [15:0] SVRAM_DATA_IN,
+	input [31:0] SVRAM_DATA_IN,
 	output [15:0] SVRAM_DATA_OUT,
 	output BOE, BWE,
 	
@@ -66,7 +66,11 @@ module lspc2_a2(
 	
 	input VMODE,
 	
-	output [14:0] FIXMAP_ADDR		// Extracted for NEO-CMC
+	output [14:0] FIXMAP_ADDR,		// Extracted for NEO-CMC
+	output [14:0] SPRMAP_ADDR,
+	output [15:0] VRAM_ADDR,        // CPU access address
+	output  [1:0] VRAM_CYCLE,
+	output [15:0] LO_ROM_ADDR
 );
 
 	wire [8:0] PIXELC;
@@ -81,7 +85,7 @@ module lspc2_a2(
 	wire [15:0] VRAM_LOW_READ;
 	wire [15:0] VRAM_HIGH_READ;
 	wire [15:0] REG_VRAMADDR;
-	wire [15:0] VRAM_ADDR;
+	//wire [15:0] VRAM_ADDR;
 	wire [15:0] VRAM_ADDR_MUX;
 	wire [15:0] VRAM_ADDR_AUTOINC;
 	wire [15:0] REG_VRAMRW;
@@ -217,11 +221,13 @@ module lspc2_a2(
 	// CPU read data output. Outputs are not enabled all at once, this is strange.
 	// Transient current spike reduction ?
 	// After LSPOE goes low, at least 1.5mclk is required for all outputs to be enabled.
+	// **Gyurco**: not relevant in a SOC design
+/*
 	wire C71_Q, LSPOE_SEQB, LSPOE_SEQA, C68_Q, LSPOE_SEQC;
 	FDM C71(CLK_24M, LSPOE, C71_Q, LSPOE_SEQA);
 	FDM C68(CLK_24MB, C71_Q, C68_Q, LSPOE_SEQB);
 	FDM C75(CLK_24M, C68_Q, , LSPOE_SEQC);
-	
+
 	assign M68K_DATA[1:0] = LSPOE ? 2'bzz : CPU_DATA_OUT[1:0];				// No delay
 	wire   B71_OUT = ~&{~LSPOE, LSPOE_SEQA};
 	assign M68K_DATA[7:2] = B71_OUT ? 6'bzzzzzz : CPU_DATA_OUT[7:2];		// t+1
@@ -229,7 +235,8 @@ module lspc2_a2(
 	assign M68K_DATA[9:8] = B75A_OUT ? 2'bzz : CPU_DATA_OUT[9:8];			// t+2
 	wire   B74_OUT = ~&{~LSPOE, LSPOE_SEQC};
 	assign M68K_DATA[15:10] = B74_OUT ? 6'bzzzzzz : CPU_DATA_OUT[15:10];	// t+3
-	
+*/
+	assign M68K_DATA = LSPOE ? 16'bzzzzzzzzzzzzzzzz : CPU_DATA_OUT;
 	
 	// Auto-animation bit enables
 	// C184A
@@ -524,7 +531,10 @@ module lspc2_a2(
 	// Q149A Q120A Q121B Q149B
 	assign P_MUX_LOW = R88_Q ? XPOS_ROUND_UP : LO_LINE_MUX;
 	
-	
+
+	// **Gyurco** exposed to SDRAM controller
+	assign LO_ROM_ADDR = {YSHRINK, LO_LINE_MUX};
+
 	// Output mux
 	// C250 A238A A232 A234A
 	// E271 E273A E268A D255
@@ -606,7 +616,7 @@ module lspc2_a2(
 							FIX_TILE, FIX_PAL, SPR_TILE, SPR_PAL, VRAM_LOW_READ, nCPU_WR_LOW, R91_nQ,
 							CLK_CPU_READ_LOW, T160A_OUT, T160B_OUT, CLK_ACTIVE_RD, ACTIVE_RD_PRE8, Q174B_OUT,
 							D208B_OUT, SPRITEMAP_ADDR_MSB, CLK_SPR_TILE, P222A_OUT, ~P201_Q[1],
-							SVRAM_ADDR, SVRAM_DATA_IN, SVRAM_DATA_OUT, BOE, BWE, FIXMAP_ADDR);
+							SVRAM_ADDR, SVRAM_DATA_IN, SVRAM_DATA_OUT, BOE, BWE, FIXMAP_ADDR, SPRMAP_ADDR, VRAM_CYCLE);
 	
 	wire nCPU_WR_HIGH, R91_Q, SPR_SIZE0, SPR_SIZE5, O159_QB;
 	fast_cycle FCY(CLK_24M, LSPC_12M, LSPC_6M, LSPC_3M, LSPC_1_5M, nRESETP, nVRAM_WRITE_REQ,
