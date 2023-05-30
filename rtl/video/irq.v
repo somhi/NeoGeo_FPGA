@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+/* verilator lint_off PINMISSING */
+
 module irq(
 	input WR_ACK,
 	input [2:0] ACK_BITS,

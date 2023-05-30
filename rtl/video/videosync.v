@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+/* verilator lint_off PINMISSING */
+
 module videosync(
 	input CLK_24MB,
 	input LSPC_3M,

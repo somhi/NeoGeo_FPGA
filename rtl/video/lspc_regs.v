@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+
+/* verilator lint_off PINMISSING */
+
 module lspc_regs(
 	input RESET,
 	input RESETP,
@@ -61,18 +64,18 @@ module lspc_regs(
 		if (~LSPWE)
 		begin
 			case (M68K_ADDR)
-				3'h0 : WR_DECODED <= 8'b11111110;
-				3'h1 : WR_DECODED <= 8'b11111101;
-				3'h2 : WR_DECODED <= 8'b11111011;
-				3'h3 : WR_DECODED <= 8'b11110111;
-				3'h4 : WR_DECODED <= 8'b11101111;
-				3'h5 : WR_DECODED <= 8'b11011111;
-				3'h6 : WR_DECODED <= 8'b10111111;
-				3'h7 : WR_DECODED <= 8'b01111111;
+				3'h0 : WR_DECODED = 8'b11111110;
+				3'h1 : WR_DECODED = 8'b11111101;
+				3'h2 : WR_DECODED = 8'b11111011;
+				3'h3 : WR_DECODED = 8'b11110111;
+				3'h4 : WR_DECODED = 8'b11101111;
+				3'h5 : WR_DECODED = 8'b11011111;
+				3'h6 : WR_DECODED = 8'b10111111;
+				3'h7 : WR_DECODED = 8'b01111111;
 			endcase
 		end
 		else
-			WR_DECODED <= 8'b11111111;
+			WR_DECODED = 8'b11111111;
 	end
 	
 	assign WR_VRAM_ADDR = WR_DECODED[0];

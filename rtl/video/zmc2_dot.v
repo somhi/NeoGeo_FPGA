@@ -42,13 +42,13 @@ module zmc2_dot(
 	always @*
 	begin
 		case ({EVEN, H})
-			3: {GBD, GAD} <= {SR[31], SR[23], SR[15], SR[7], SR[30], SR[22], SR[14], SR[6]};
-			2: {GBD, GAD} <= {SR[24], SR[16],  SR[8], SR[0], SR[25], SR[17],  SR[9], SR[1]};
-			1: {GBD, GAD} <= {SR[30], SR[22], SR[14], SR[6], SR[31], SR[23], SR[15], SR[7]};
-			0: {GBD, GAD} <= {SR[25], SR[17],  SR[9], SR[1], SR[24], SR[16],  SR[8], SR[0]};
+			3: {GBD, GAD} = {SR[31], SR[23], SR[15], SR[7], SR[30], SR[22], SR[14], SR[6]};
+			2: {GBD, GAD} = {SR[24], SR[16],  SR[8], SR[0], SR[25], SR[17],  SR[9], SR[1]};
+			1: {GBD, GAD} = {SR[30], SR[22], SR[14], SR[6], SR[31], SR[23], SR[15], SR[7]};
+			0: {GBD, GAD} = {SR[25], SR[17],  SR[9], SR[1], SR[24], SR[16],  SR[8], SR[0]};
 		endcase
 		
-		{DOTA, DOTB} <= {|GAD, |GBD};
+		{DOTA, DOTB} = {|GAD, |GBD};
 	end
 	
 	// EVEN H  FEDCBA98 76543210 FEDCBA98 76543210

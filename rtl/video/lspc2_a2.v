@@ -20,6 +20,8 @@
 
 // All pins listed ok. REF, DIVI and DIVO only used on AES for video PLL hack
 
+/* verilator lint_off PINMISSING */
+
 module lspc2_a2(
 	input CLK_24M,
 	input RESET,
@@ -73,9 +75,13 @@ module lspc2_a2(
 	output [15:0] LO_ROM_ADDR
 );
 
+/* verilator lint_off UNOPTFLAT */
 	wire [8:0] PIXELC;
+/* verilator lint_on UNOPTFLAT */
 	wire [3:0] PIXEL_HPLUS;
+/* verilator lint_off UNOPTFLAT */
 	wire [8:0] RASTERC;
+/* verilator lint_on UNOPTFLAT */
 	
 	wire [7:0] AA_SPEED;
 	wire [2:0] AA_COUNT;				// Auto-animation tile #
@@ -96,8 +102,10 @@ module lspc2_a2(
 	
 	wire [2:0] TIMER_MODE;
 	
+/* verilator lint_off UNOPTFLAT */
 	wire [3:0] T31_P;
 	wire [3:0] U24_P;
+/* verilator lint_on UNOPTFLAT */
 	wire [3:0] O227_Q;
 	
 	wire [7:0] P_MUX_HIGH;
@@ -468,7 +476,7 @@ module lspc2_a2(
 	// 16-pixel lookahead for fix tiles
 	wire J20A_OUT = ~&{PIXELC[8:7]};
 	// I51
-	assign PIXEL_HPLUS = 4'd15 + {~J20A_OUT, PIXELC[6:4]} + PIXELC[3];
+	assign PIXEL_HPLUS = 4'd15 + {~J20A_OUT, PIXELC[6:4]} + {3'd0, PIXELC[3]};
 	
 	
 	// V-shrink mirroring and pipeline
@@ -517,7 +525,7 @@ module lspc2_a2(
 	assign SPR_TILE_AA[1:0] = AUTOANIM2_EN ? AA_COUNT[1:0] : SPR_TILE[1:0];
 	
 	// Q125 R120
-	assign XPOS_ROUND_UP = XPOS[8:1] + XPOS[0];
+	assign XPOS_ROUND_UP = XPOS[8:1] + {7'd0, XPOS[0]};
 	
 	// K143A K145A K147A K149A
 	// Q111A Q113B Q113A Q111B

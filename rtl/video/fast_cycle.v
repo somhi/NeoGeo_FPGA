@@ -18,6 +18,8 @@
 //  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //============================================================================
 
+/* verilator lint_off PINMISSING */
+
 module fast_cycle(
 	input CLK_24M,
 	input LSPC_12M,
@@ -85,7 +87,7 @@ module fast_cycle(
 	wire T90A_OUT /* synthesis keep */;			// DEBUG
 	reg [8:0] PARSE_INDEX;
 	reg P39A_OUT;
-	reg [47:0] SR_SPR_PARAMS;	// 3*14
+	reg [41:0] SR_SPR_PARAMS;	// 3*14
 	reg S105_OUT;
 	reg [7:0] J87_G152_Q;
 	reg J231_Q;

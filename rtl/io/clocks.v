@@ -28,7 +28,9 @@ module clocks(
 	output reg CLK_1HB
 );
 
+/* verilator lint_off UNOPTFLAT */
 	reg [2:0] CLK_DIV;
+/* verilator lint_on UNOPTFLAT */
 	wire CLK_3M;
 	
 	assign CLK_68KCLKB = ~CLK_68KCLK;

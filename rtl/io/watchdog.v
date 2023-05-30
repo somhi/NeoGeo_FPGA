@@ -28,7 +28,7 @@ module watchdog(
 	reg [3:0] WDCNT;
 	
 	initial
-		WDCNT <= 4'b0000;
+		WDCNT = 4'b0000;
 	
 	// IMPORTANT:
 	// nRESET is an open-collector output on B1, so that the 68k can drive it (RESET instruction)

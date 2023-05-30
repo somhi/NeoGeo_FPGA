@@ -1,0 +1,6 @@
+obj_dir
+mems
+video.png
+video.rgb
+*.gtkw
+*.vcd

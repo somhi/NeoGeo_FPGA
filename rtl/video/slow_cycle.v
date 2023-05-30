@@ -16,6 +16,8 @@
 
 // Slow VRAM is 120ns (3mclk or more, probably 3.5mclk)
 
+/* verilator lint_off PINMISSING */
+
 module slow_cycle(
 	input CLK_24M,
 	input CLK_24MB,
@@ -92,15 +94,21 @@ module slow_cycle(
 	
 	// Sprite map read even
 	// H233 C279 B250 C191
+	`ifdef VRAM32
 	//**Gyurco** latch later (same time as even address) to make us of 32 bit VRAM reads
-	//FDS16bit H233(~CLK_SPR_TILE, E, SPR_TILE[15:0]);
 	FDS16bit H233(D208B_OUT, E, SPR_TILE[15:0]);
+	`else
+	FDS16bit H233(~CLK_SPR_TILE, E, SPR_TILE[15:0]);
+	`endif
 	
 	// Sprite map read odd
 	// D233 D283 A249 C201
+	`ifdef VRAM32
 	//**Gyurco** latch second word from 32-bit read
-	//FDS16bit D233(D208B_OUT, E, {D233_Q, D283_Q, SPR_TILE[19:16], SPR_AA_3, SPR_AA_2, SPR_TILE_VFLIP, SPR_TILE_HFLIP});
 	FDS16bit D233(D208B_OUT, SVRAM_DATA_IN[31:16], {D233_Q, D283_Q, SPR_TILE[19:16], SPR_AA_3, SPR_AA_2, SPR_TILE_VFLIP, SPR_TILE_HFLIP});
+	`else
+	FDS16bit D233(D208B_OUT, E, {D233_Q, D283_Q, SPR_TILE[19:16], SPR_AA_3, SPR_AA_2, SPR_TILE_VFLIP, SPR_TILE_HFLIP});
+	`endif
 	FDSCell C233(Q174B_OUT, D233_Q, SPR_PAL[7:4]);
 	FDSCell D269(Q174B_OUT, D283_Q, SPR_PAL[3:0]);
 	
