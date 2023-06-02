@@ -1,22 +1,28 @@
+SYNC=_sync
 OBJ_DIR=obj_dir
 VERILATOR_DIR=/usr/share/verilator/include
 HDL_FILES = \
-	../rtl/video/autoanim.v \
+	../rtl/video${SYNC}/autoanim.v \
+	../rtl/video${SYNC}/fast_cycle.v \
 	../rtl/video/fast_cycle.v \
-	../rtl/video/hshrink.v \
-	../rtl/video/irq.v \
-	../rtl/video/linebuffer.v \
-	../rtl/video/lspc2_a2.v \
-	../rtl/video/lspc2_clk.v \
-	../rtl/video/lspc_regs.v \
-	../rtl/video/lspc_timer.v \
-	../rtl/video/neo_273.v \
-	../rtl/video/neo_b1.v \
-	../rtl/video/neo_cmc.v \
-	../rtl/video/neo_zmc2.v \
+	../rtl/video${SYNC}/slow_cycle.v \
 	../rtl/video/slow_cycle.v \
+	../rtl/video${SYNC}/hshrink.v \
+	../rtl/video${SYNC}/irq.v \
+	../rtl/video${SYNC}/neo_b1.v \
+	../rtl/video${SYNC}/linebuffer.v \
+	../rtl/video${SYNC}/lspc2_a2.v \
+	../rtl/video/lspc2_a2.v \
+	../rtl/video${SYNC}/lspc2_clk.v \
+	../rtl/video/lspc2_clk.v \
+	../rtl/video${SYNC}/lspc_regs.v \
+	../rtl/video${SYNC}/lspc_timer.v \
+	../rtl/video${SYNC}/neo_273.v \
+	../rtl/video${SYNC}/neo_cmc.v \
+	../rtl/video${SYNC}/neo_zmc2.v \
+	../rtl/video${SYNC}/videosync.v \
 	../rtl/video/videosync.v \
-	../rtl/video/zmc2_dot.v \
+	../rtl/video${SYNC}/zmc2_dot.v \
 	../rtl/cells/bd3.v \
 	../rtl/cells/C43.v \
 	../rtl/cells/fd2.v \
@@ -32,9 +38,10 @@ HDL_FILES = \
 	../rtl/cells/fs2.v \
 	../rtl/cells/fs3.v \
 	../rtl/cells/lt4.v \
-	../rtl/io/clocks.v \
+	../rtl/io${SYNC}/clocks.v \
+	../rtl/io${SYNC}/resetp.v \
 	../rtl/io/resetp.v \
-	../rtl/io/watchdog.v\
+	../rtl/io${SYNC}/watchdog.v\
 	spram.v
 
 

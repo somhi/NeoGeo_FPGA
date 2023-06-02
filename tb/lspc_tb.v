@@ -21,7 +21,7 @@
 //============================================================================
 
 module lspc_tb (
-	input CLK_24M,
+	input CLK_48M,
 	input nRESET,
 	input VIDEO_MODE,
 
@@ -70,6 +70,13 @@ module lspc_tb (
 
 );
 
+reg          CLK_24M = 1;
+initial begin
+	assign CLK_24M = 1;
+end
+
+always @(posedge CLK_48M) CLK_24M <= ~CLK_24M;
+
 wire         SP_EN = 1'b1;
 wire         FIX_EN = 1'b1;
 
@@ -117,8 +124,12 @@ assign DOTB_GATED = SP_EN & DOTB;
 
 assign PBUS[23:16] = nPBUS_OUT_EN ? LO_ROM_DATA : 8'bzzzzzzzz;
 
-lspc2_a2	LSPC(
-	.CLK_24M(CLK_24M),
+lspc2_a2_sync	LSPC_sync(
+//lspc2_a2	LSPC(
+	.CLK(CLK_48M),
+	.CLK_EN_24M_P(~CLK_24M),
+	.CLK_EN_24M_N( CLK_24M),
+//	.CLK_24M(CLK_24M),
 	.RESET(nRESET),
 	.nRESETP(nRESETP),
 	.LSPC_8M(CLK_8M), .LSPC_4M(CLK_4M),
@@ -133,7 +144,7 @@ lspc2_a2	LSPC(
 	.PCK1(PCK1), .PCK2(PCK2),
 	.CHG(CHG),
 	.LD1(LD1), .LD2(LD2),
-	.WE(WE), .CK(CK),	.SS1(SS1), .SS2(SS2),
+	.WE(WE), .CK(CK), .SS1(SS1), .SS2(SS2),
 	.HSYNC(HSYNC), .VSYNC(VSYNC),
 	.CHBL(CHBL), .BNKB(nBNKB),
 	.VCS(VCS),
@@ -151,9 +162,49 @@ lspc2_a2	LSPC(
 	.LO_ROM_ADDR(LO_ROM_ADDR)
 );
 
-wire         CLK_12M, CLK_68KCLK, CLK_68KCLKB, CLK_6MB, CLK_1HB;
+//lspc2_a2_sync	LSPC_sync(
+lspc2_a2	LSPC(
+//	.CLK(CLK_48M),
+//	.CLK_EN_24M_P(~CLK_24M),
+//	.CLK_EN_24M_N( CLK_24M),
+	.CLK_24M(CLK_24M),
+	.RESET(nRESET),
+	.nRESETP(),
+	.LSPC_8M(), .LSPC_4M(),
+	.M68K_ADDR(M68K_ADDR[3:1]), .M68K_DATA(M68K_DATA),
+	.IPL0(), .IPL1(),
+	.LSPOE(), .LSPWE(),
+	.PBUS_OUT(PBUS[15:0]), .PBUS_IO(PBUS[23:16]),
+	.nPBUS_OUT_EN(),
+	.DOTA(DOTA_GATED), .DOTB(DOTB_GATED),
+	.CA4(), .S2H1(), .S1H1(),
+	.LOAD(), .H(), .EVEN1(), .EVEN2(),
+	.PCK1(), .PCK2(),
+	.CHG(),
+	.LD1(), .LD2(),
+	.WE(), .CK(), .SS1(), .SS2(),
+	.HSYNC(), .VSYNC(),
+	.CHBL(), .BNKB(),
+	.VCS(),
+	.SVRAM_ADDR(),
+	.SVRAM_DATA_IN(SLOW_VRAM_DATA_IN), .SVRAM_DATA_OUT(),
+	.BOE(), .BWE(),
+	.FVRAM_ADDR(),
+	.FVRAM_DATA_IN(FAST_VRAM_DATA_IN), .FVRAM_DATA_OUT(),
+	.CWE(),
+	.VMODE(VIDEO_MODE),
+	.FIXMAP_ADDR(),	// Extracted for NEO-CMC
+	.SPRMAP_ADDR(),
+	.VRAM_ADDR(),
+	.VRAM_CYCLE(),
+	.LO_ROM_ADDR()
+);
 
-clocks CLK(CLK_24M, nRESETP, CLK_12M, CLK_68KCLK, CLK_68KCLKB, CLK_6MB, CLK_1HB);
+wire         CLK_12M, CLK_EN_12M, CLK_68KCLK, CLK_68KCLKB, CLK_6MB, CLK_1HB;
+
+/* verilator lint_off PINMISSING */
+clocks CLK(CLK_48M, CLK_24M, nRESETP, CLK_12M, CLK_68KCLK, CLK_68KCLKB, CLK_6MB, CLK_1HB);
+/* verilator lint_on PINMISSING */
 
 
 wire [19:0] C_LATCH;
@@ -175,13 +226,30 @@ assign CROM_ADDR = {C_LATCH_EXT, C_LATCH, 3'b000};// & CROM_MASK;
 
 wire [ 3: 0] GAD;
 wire [ 3: 0] GBD;
-wire [ 3: 0] WE;
-wire [ 3: 0] CK;
 
 // This is used to split burst-read sprite gfx data in half at the right time
 reg LOAD_SR;
 reg CA4_REG;
+/*
+// CA4's polarity depends on the tile's h-flip attribute
+// Normal: CA4 high, then low
+// Flipped: CA4 low, then high
+always @(negedge CLK_24M) if (LOAD_EN) CA4_REG <= CA4;
 
+// CR_DOUBLE: [8px left] [8px right]
+//         BP  A B C D    A B C D
+wire [31:0] CR = CA4_REG ? CR_DOUBLE[63:32] : CR_DOUBLE[31:0];
+
+neo_zmc2 ZMC2(
+	.CLK(CLK_24M),
+	.CLK_EN_12M_N(CLK_12M),
+	.EVEN(EVEN1), .LOAD_EN(LOAD_EN), .H(H),
+	.CR(CR),
+	.GAD(GAD), .GBD(GBD),
+	.DOTA(DOTA), .DOTB(DOTB)
+);
+
+*/
 // CA4's polarity depends on the tile's h-flip attribute
 // Normal: CA4 high, then low
 // Flipped: CA4 low, then high
@@ -192,7 +260,8 @@ end
 
 // CR_DOUBLE: [8px left] [8px right]
 //         BP  A B C D    A B C D
-wire [31:0] CR = CA4_REG ? CR_DOUBLE[63:32] : CR_DOUBLE[31:0];
+
+wire [31:0] CR = ~CA4_REG ? CR_DOUBLE[63:32] : CR_DOUBLE[31:0];
 
 neo_zmc2 ZMC2(
 	.CLK_12M(CLK_12M),
@@ -209,7 +278,7 @@ assign FIXD = S2H1 ? SROM_DATA[15:8] : SROM_DATA[7:0];
 
 wire nRESET_WD;
 neo_b1 B1(
-	.CLK(CLK_24M),	.CLK_6MB(CLK_6MB), .CLK_1HB(CLK_1HB),
+	.CLK(CLK_48M),	.CLK_6MB(CLK_6MB), .CLK_1HB(CLK_1HB),
 	.S1H1(S1H1),
 	.A23I(A23Z), .A22I(A22Z),
 	.M68K_ADDR_U(M68K_ADDR[21:17]), .M68K_ADDR_L(M68K_ADDR[12:1]),
