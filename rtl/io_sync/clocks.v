@@ -18,21 +18,25 @@
 // Todo: Check phase relations between 12M, 68KCLK and 68KCLKB
 // Todo: Check cycle right after nRESETP goes high, real hw might have an important delay added
 
-module clocks(
+module clocks_sync(
 	input CLK,
+	input CLK_EN_24M_P,
 	input CLK_EN_24M_N,
 	input nRESETP,
+	output CLK_24M,
 	output CLK_12M,
 	output reg CLK_68KCLK,
 	output CLK_68KCLKB,
+	output CLK_EN_68K_P,
+	output CLK_EN_68K_N,
 	output CLK_6MB,
 	output reg CLK_1HB,
-	output CLK_EN_12M
+	output CLK_EN_12M,
+	output CLK_EN_6MB,
+	output CLK_EN_1HB
 );
 
-/* verilator lint_off UNOPTFLAT */
 	reg [2:0] CLK_DIV;
-/* verilator lint_on UNOPTFLAT */
 	wire CLK_3M;
 	
 	assign CLK_68KCLKB = ~CLK_68KCLK;
@@ -41,13 +45,13 @@ module clocks(
 	begin
 		if (!nRESETP)
 			CLK_68KCLK <= 1'b0;	// Thanks ElectronAsh ! Real hw doesn't clearly init DFF
-		else if (CLK_EN_24M_N)
+		else if (CLK_EN_24M_P)
 			CLK_68KCLK <= ~CLK_68KCLK;	// MV4 C4:A
 	end
-	//always @(posedge CLK_24M)
-	//	CLK_68KCLK <= ~CLK_68KCLK;	// MV4 C4:A
+	assign CLK_EN_68K_P = ~CLK_68KCLK & CLK_EN_24M_P;
+	assign CLK_EN_68K_N =  CLK_68KCLK & CLK_EN_24M_P;
 	
-	always @(posedge CLK or negedge nRESETP)
+	always @(posedge CLK, negedge nRESETP)
 	begin
 		if (!nRESETP)
 			CLK_DIV <= 3'b100;
@@ -55,6 +59,7 @@ module clocks(
 			CLK_DIV <= CLK_DIV + 1'b1;
 	end
 	
+	assign CLK_24M = CLK_EN_24M_N;
 	assign CLK_12M = CLK_DIV[0];
 	assign CLK_EN_12M = CLK_EN_24M_N & ~CLK_DIV[0];
 	assign CLK_6MB = ~CLK_DIV[1];
@@ -63,5 +68,8 @@ module clocks(
 	// MV4 C4:B
 	always @(posedge CLK)
 		if (CLK_EN_12M) CLK_1HB <= ~CLK_3M;
+
+	assign CLK_EN_6MB = CLK_EN_24M_N & CLK_DIV == 3;
+	assign CLK_EN_1HB = CLK_EN_24M_N & CLK_DIV == 0;
 	
 endmodule

@@ -18,8 +18,8 @@
 
 module neo_b1(
 	input CLK,					// For linebuffers RAM
-	input CLK_6MB,				// Pixel clock
-	input CLK_1HB,				// 3MHz 2px Even/odd pixel selection
+	input CLK_6MB,			// Pixel clock
+	input CLK_EN_1HB,			// 3MHz 2px Even/odd pixel selection
 	
 	input [23:0] PBUS,		// Used to retrieve LB addresses loads, SPR palette # and FIX palette # from LSPC
 	input [7:0] FIXD,			// 2 fix pixels
@@ -69,8 +69,8 @@ module neo_b1(
 
 	// 2px fix data reg
 	// BEKU AKUR...
-	always @(posedge CLK_1HB)
-		FIXD_REG <= FIXD;
+	always @(posedge CLK)
+		if (CLK_EN_1HB) FIXD_REG <= FIXD;
 	
 	// Switch between odd/even fix pixel
 	// BEVU AWEQ...
@@ -121,12 +121,12 @@ module neo_b1(
 	
 	// Fix/Sprite/Blanking select
 	// KUQA KUTU JARA...
-	assign PA_MUX_A = RAM_MUX_OUT;//FIX_OPAQUE ? {4'b0000, FIX_PAL_REG, FIX_COLOR} : RAM_MUX_OUT;
+	assign PA_MUX_A = FIX_OPAQUE ? {4'b0000, FIX_PAL_REG, FIX_COLOR} : RAM_MUX_OUT;
 	assign PA_MUX_B = CHBL ? 12'h000 : PA_MUX_A;
 
 	// KAWE KESE...
 	always @(posedge CLK_6MB)
-		PA_VIDEO <= PA_MUX_B;
+		/*if (CLK_EN_6MB)*/ PA_VIDEO <= PA_MUX_B;
 	
 	// KUTE KENU...
 	assign PA = nCPU_ACCESS ? PA_VIDEO : M68K_ADDR_L;

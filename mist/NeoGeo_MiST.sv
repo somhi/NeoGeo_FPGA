@@ -61,14 +61,16 @@ wire        vmode = status[3];
 
 assign LED = ~ioctl_downl;
 assign SDRAM_CKE = 1; 
+assign SDRAM_CLK = CLK_96M;
 
-wire CLK_120M, CLK_24M;
+wire CLK_96M, CLK_48M;
 wire pll_locked;
 pll_mist pll(
 	.inclk0(CLOCK_27),
-	.c0(SDRAM_CLK),
-	.c1(CLK_120M),
-	.c2(CLK_24M),
+//	.c0(SDRAM_CLK),
+	.c0(CLK_96M),
+//	.c1(CLK_96M),
+	.c2(CLK_48M),
 	.locked(pll_locked)
 	);
 
@@ -88,7 +90,7 @@ user_io #(
 	.STRLEN(($size(CONF_STR)>>3)),
 	.ROM_DIRECT_UPLOAD(1'b1))
 user_io(
-	.clk_sys        (CLK_24M        ),
+	.clk_sys        (CLK_48M        ),
 	.conf_str       (CONF_STR       ),
 	.SPI_CLK        (SPI_SCK        ),
 	.SPI_SS_IO      (CONF_DATA0     ),
@@ -115,7 +117,7 @@ wire [24:0] ioctl_addr;
 wire  [7:0] ioctl_dout;
 
 data_io #(.ROM_DIRECT_UPLOAD(1'b1)) data_io(
-	.clk_sys       ( CLK_24M      ),
+	.clk_sys       ( CLK_48M      ),
 	.SPI_SCK       ( SPI_SCK      ),
 	.SPI_SS2       ( SPI_SS2      ),
 	.SPI_SS4       ( SPI_SS4      ),
@@ -131,7 +133,7 @@ data_io #(.ROM_DIRECT_UPLOAD(1'b1)) data_io(
 
 // reset signal generation
 reg reset;
-always @(posedge CLK_24M) begin
+always @(posedge CLK_48M) begin
 	reg [15:0] reset_count;
 
 	if (status[0] | buttons[1] | ioctl_downl) reset_count <= 16'hffff;
@@ -241,7 +243,7 @@ always @(*) begin
 	endcase
 end
 
-always @(posedge CLK_24M) begin
+always @(posedge CLK_48M) begin
 	reg [1:0] written = 0;
 	if (ioctl_wr) begin
 		if (system_rom_write) begin
@@ -322,7 +324,7 @@ wire [25:0] port2_addr = region == 3 ? CSize + offset : // V1 ROM
 						               {offset[25:7], ioctl_addr[5:2], ~ioctl_addr[6], ioctl_addr[0], ioctl_addr[1]}; // CROM
 
 // VRAM->SDRAM control
-always @(posedge CLK_24M) begin
+always @(posedge CLK_48M) begin
 	reg SLOW_VRAM_WE_OLD;
 	reg SLOW_VRAM_RD_OLD;
 	reg SPRMAP_RD_OLD;
@@ -347,21 +349,21 @@ always @(posedge CLK_24M) begin
 end
 
 // SFIX->SDRAM control
-always @(posedge CLK_24M) begin
+always @(posedge CLK_48M) begin
 	reg SFIX_RD_OLD;
 	SFIX_RD_OLD <= SFIX_RD;
 	if (SFIX_RD_OLD & !SFIX_RD) sfix_req <= ~sfix_req;
 end
 
 // LO ROM->SDRAM control
-always @(posedge CLK_24M) begin
+always @(posedge CLK_48M) begin
 	reg [15:0] LO_ROM_ADDR_OLD;
 	LO_ROM_ADDR_OLD <= LO_ROM_ADDR;
 	if (LO_ROM_ADDR_OLD[15:1] != LO_ROM_ADDR[15:1]) lo_rom_req <= ~lo_rom_req;
 end
 
 // CROM->SDRAM control
-always @(posedge CLK_24M) begin
+always @(posedge CLK_48M) begin
 	reg CROM_RD_OLD;
 	CROM_RD_OLD <= CROM_RD;
 	if (CROM_RD_OLD & !CROM_RD) sp_req <= ~sp_req;
@@ -370,7 +372,7 @@ end
 // ADPCM->SDRAM control
 reg [23:0] ADPCMA_ADDR_LATCH;
 reg [23:0] ADPCMB_ADDR_LATCH;
-always @(posedge CLK_24M) begin
+always @(posedge CLK_48M) begin
 	reg ADPCMA_RD_OLD, ADPCMB_RD_OLD;
 	ADPCMA_RD_OLD <= ADPCMA_RD;
 	ADPCMB_RD_OLD <= ADPCMB_RD;
@@ -434,11 +436,11 @@ end
 // 1111 0xxx xxxx xxxx xxxx xxxx    Z80 Cart ROM
 // 1111 1xxx xxxx xxxx xxxx xxxx    SROM
 
-sdram_4w_cl3 #(120) sdram
+sdram_4w_cl3 #(96) sdram
 (
   .*,
   .init_n        ( pll_locked    ),
-  .clk           ( CLK_120M      ),
+  .clk           ( CLK_96M      ),
 
   // Bank 3 ops
   .port1_a       ( port1_addr[23:1] ),
@@ -528,7 +530,7 @@ wire  [9:0] P1_IN = {(joy0[9:8]|ps2_mouse[2]), {use_mouse ? ms_pos : {joy0[7:4]|
 wire  [9:0] P2_IN = {(joy1[9:8]             ), {use_mouse ? ms_btn : {joy1[7:4]|{3{joy1[11]}}, joy1[0], joy1[1], joy1[2], joy1[3]}}};
 
 neogeo_top neogeo_top (
-	.CLK_24M       ( CLK_24M ),
+	.CLK_48M       ( CLK_48M ),
 	.RESET         ( reset   ),
 
 	.VIDEO_MODE    ( vmode ),
@@ -607,7 +609,7 @@ neogeo_top neogeo_top (
 );
 
 mist_video #(.COLOR_DEPTH(6), .SD_HCNT_WIDTH(10), .USE_BLANKS(1'b0)) mist_video(
-	.clk_sys        ( CLK_24M          ),
+	.clk_sys        ( CLK_48M          ),
 	.SPI_SCK        ( SPI_SCK          ),
 	.SPI_SS3        ( SPI_SS3          ),
 	.SPI_DI         ( SPI_DI           ),
@@ -624,7 +626,7 @@ mist_video #(.COLOR_DEPTH(6), .SD_HCNT_WIDTH(10), .USE_BLANKS(1'b0)) mist_video(
 	.VGA_VS         ( VGA_VS           ),
 	.VGA_HS         ( VGA_HS           ),
 	.rotate         ( { orientation[1], rotate } ),
-	.ce_divider     ( 1'b1             ),
+	.ce_divider     ( 3'd0             ),
 	.scandoubler_disable( scandoublerD ),
 	.scanlines      ( scanlines        ),
 	.blend          ( blend            ),
@@ -635,7 +637,7 @@ mist_video #(.COLOR_DEPTH(6), .SD_HCNT_WIDTH(10), .USE_BLANKS(1'b0)) mist_video(
 dac #(
 	.C_bits(16))
 dacl(
-	.clk_i(CLK_24M),
+	.clk_i(CLK_48M),
 	.res_n_i(1),
 	.dac_i({~ch_left[15], ch_left[14:0]}),
 	.dac_o(AUDIO_L)
@@ -644,7 +646,7 @@ dacl(
 dac #(
 	.C_bits(16))
 dacr(
-	.clk_i(CLK_24M),
+	.clk_i(CLK_48M),
 	.res_n_i(1),
 	.dac_i({~ch_right[15], ch_right[14:0]}),
 	.dac_o(AUDIO_R)
@@ -655,7 +657,7 @@ wire m_up2, m_down2, m_left2, m_right2, m_fire2A, m_fire2B, m_fire2C, m_fire2D, 
 wire m_tilt, m_coin1, m_coin2, m_coin3, m_coin4, m_one_player, m_two_players, m_three_players, m_four_players;
 
 arcade_inputs #(.START1(8), .START2(10), .COIN1(9)) inputs (
-	.clk         ( CLK_24M     ),
+	.clk         ( CLK_48M     ),
 	.key_strobe  ( key_strobe  ),
 	.key_pressed ( key_pressed ),
 	.key_code    ( key_code    ),

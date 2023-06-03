@@ -38,6 +38,7 @@ HDL_FILES = \
 	../rtl/cells/fs2.v \
 	../rtl/cells/fs3.v \
 	../rtl/cells/lt4.v \
+	../rtl/io/clocks.v \
 	../rtl/io${SYNC}/clocks.v \
 	../rtl/io${SYNC}/resetp.v \
 	../rtl/io/resetp.v \

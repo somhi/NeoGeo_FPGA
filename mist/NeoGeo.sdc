@@ -54,7 +54,7 @@ set_time_format -unit ns -decimal_places 3
 create_clock -name {SPI_SCK}  -period 41.666 -waveform { 20.8 41.666 } [get_ports {SPI_SCK}]
 
 set sdram_clk "pll|altpll_component|auto_generated|pll1|clk[0]"
-set mem_clk   "pll|altpll_component|auto_generated|pll1|clk[1]"
+set mem_clk   "pll|altpll_component|auto_generated|pll1|clk[0]"
 set vid_clk   "pll|altpll_component|auto_generated|pll1|clk[2]"
 set game_clk  "pll|altpll_component|auto_generated|pll1|clk[2]"
 
@@ -119,7 +119,7 @@ set_clock_groups -asynchronous -group [get_clocks {SPI_SCK}] -group [get_clocks 
 set_multicycle_path -to {VGA_*[*]} -setup 3
 set_multicycle_path -to {VGA_*[*]} -hold 2
 
-set_multicycle_path -from [get_clocks $sdram_clk] -to [get_clocks $mem_clk] -setup 2
+#set_multicycle_path -from [get_clocks $sdram_clk] -to [get_clocks $mem_clk] -setup 2
 
 
 #**************************************************************

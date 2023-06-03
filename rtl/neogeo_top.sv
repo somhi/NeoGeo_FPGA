@@ -38,7 +38,7 @@
 
 module neogeo_top
 (
-	input         CLK_24M,
+	input         CLK_48M,
 	input         RESET,
 
 	input   [1:0] SYSTEM_TYPE,
@@ -131,6 +131,11 @@ assign ROM_RD = ~nROMOE;
 assign PORT_RD = ~nPORTOE;
 assign SROM_RD = ~nSROMOE;
 
+reg CLK_EN_24M_N, CLK_EN_24M_P;
+always @(posedge CLK_48M) begin
+	CLK_EN_24M_N <= ~CLK_EN_24M_N;
+	CLK_EN_24M_P <= CLK_EN_24M_N;
+end
 //////////////////   Her Majesty   ///////////////////
 
 reg  [31:0] cfg = 0;
@@ -141,7 +146,7 @@ wire nRESETP, nSYSTEM, CARD_WE, SHADOW, nVEC, nREGEN, nSRAMWEN, PALBNK;
 wire CD_nRESET_Z80 = 1'b1;
 
 // Clocks
-wire CLK_12M, CLK_68KCLK, CLK_68KCLKB, CLK_8M, CLK_6MB, CLK_4M, CLK_4MB, CLK_1HB;
+wire CLK_24M, CLK_12M, CLK_68KCLK, CLK_68KCLKB, CLK_6MB, CLK_EN_1HB, CLK_EN_4M_P, CLK_EN_4M_N, CLK_EN_68K_P, CLK_EN_68K_N;
 
 // 68k stuff
 wire [15:0] M68K_DATA;
@@ -334,9 +339,13 @@ wire CD_EXT_RD = DMA_RUNNING ? (SYSTEM_CDx & (DMA_ADDR_IN[23:21] == 3'd0) & DMA_
 										(SYSTEM_CDx & (~nWRL | ~nWRU));											// CPU reads from $100000~$1FFFFF
 
 neo_d0 D0(
+	.CLK(CLK_48M),
+	.CLK_EN_24M_P(CLK_EN_24M_P),
+	.CLK_EN_24M_N(CLK_EN_24M_N),
 	.CLK_24M(CLK_24M),
 	.nRESET(nRESET), .nRESETP(nRESETP),
-	.CLK_12M(CLK_12M), .CLK_68KCLK(CLK_68KCLK), .CLK_68KCLKB(CLK_68KCLKB), .CLK_6MB(CLK_6MB), .CLK_1HB(CLK_1HB),
+	.CLK_12M(CLK_12M), .CLK_68KCLK(CLK_68KCLK), .CLK_68KCLKB(CLK_68KCLKB), .CLK_6MB(CLK_6MB), .CLK_EN_1HB(CLK_EN_1HB),
+	.CLK_EN_68K_P(CLK_EN_68K_P), .CLK_EN_68K_N(CLK_EN_68K_N),
 	.M68K_ADDR_A4(M68K_ADDR[4]),
 	.M68K_DATA(M68K_DATA[5:0]),
 	.nBITWD0(nBITWD0),
@@ -369,7 +378,9 @@ wire nDTACK_ADJ = ~&{nSROMOE, nROMOE, nPORTOE, ~CD_EXT_RD} ? ~PROM_DATA_READY | 
                   |(WRAM_RD | WRAM_WE | SRAM_RD | SRAM_WE) ? ~RAM_DATA_READY | nDTACK : nDTACK;
 
 cpu_68k M68KCPU(
-	.CLK_24M(CLK_24M),
+	.CLK_48M(CLK_48M),
+	.CLK_EN_68K_P(CLK_EN_68K_P),
+	.CLK_EN_68K_N(CLK_EN_68K_N),
 	.nRESET(nRESET_WD),
 	.M68K_ADDR(M68K_ADDR),
 	.FX68K_DATAIN(FX68K_DATAIN), .FX68K_DATAOUT(FX68K_DATAOUT),
@@ -595,7 +606,8 @@ assign M68K_DATA = (cart_chip == 2) ? COM_DOUT : 16'bzzzzzzzz_zzzzzzzz;
 
 syslatch SL(
 	.nRESET(nRESET),
-	.CLK_68KCLK(CLK_68KCLK),
+	.CLK(CLK_48M),
+	.CLK_EN_68K_P(CLK_EN_68K_P),
 	.M68K_ADDR(M68K_ADDR[4:1]),
 	.nBITW1(nBITW1),
 	.SHADOW(SHADOW), .nVEC(nVEC), .nCARDWEN(nCARDWEN),	.CARDWENB(CARDWENB), .nREGEN(nREGEN), .nSYSTEM(nSYSTEM), .nSRAMWEN(nSRAMWEN), .PALBNK(PALBNK)
@@ -679,7 +691,7 @@ reg CA4_REG;
 // CA4's polarity depends on the tile's h-flip attribute
 // Normal: CA4 high, then low
 // Flipped: CA4 low, then high
-always @(posedge CLK_24M) begin
+always @(posedge CLK_48M) begin
 	LOAD_SR <= LOAD;
 	if (~LOAD_SR & LOAD) CA4_REG <= CA4;
 end
@@ -716,7 +728,7 @@ dpram #(16) LO(
 assign PBUS[23:16] = nPBUS_OUT_EN ? LO_ROM_DATA : 8'bzzzzzzzz;
 
 spram #(11,16) UFV(
-	.clock(CLK_24M),	//~CLK_24M,		// Is just CLK ok ?
+	.clock(CLK_48M),	//~CLK_24M,		// Is just CLK ok ?
 	.address(FAST_VRAM_ADDR),
 	.data(FAST_VRAM_DATA_OUT),
 	.wren(~CWE),
@@ -733,7 +745,7 @@ spram #(15,16) USV(
 */
 // fixmap only
 spram #(12,16) USV(
-	.clock(CLK_24M),	//~CLK_24M,		// Is just CLK ok ?
+	.clock(CLK_48M),	//~CLK_24M,		// Is just CLK ok ?
 	.address(SLOW_VRAM_ADDR[11:0]),
 	.data(SLOW_VRAM_DATA_OUT),
 	.wren(~BWE & ~SCB1_CS),
@@ -743,7 +755,7 @@ spram #(12,16) USV(
 wire [18:11] MA;
 wire [7:0] Z80_RAM_DATA;
 
-spram #(11) Z80RAM(.clock(CLK_24M), .address(SDA[10:0]), .data(SDD_OUT), .wren(~(nZRAMCS | nSDMWR)), .q(Z80_RAM_DATA));	// Fast enough ?
+spram #(11) Z80RAM(.clock(CLK_48M), .address(SDA[10:0]), .data(SDD_OUT), .wren(~(nZRAMCS | nSDMWR)), .q(Z80_RAM_DATA));	// Fast enough ?
 
 assign SDD_IN = (~nSDZ80R) ? SDD_RD_C1 :
 					(~nSDMRD & ~nSDROM) ? M1_ROM_DATA :
@@ -758,21 +770,10 @@ wire nZ80WAIT = Z80_ROM_RD ? Z80_ROM_READY : 1'b1;
 assign Z80_ROM_RD = ~(nSDMRD | nSDROM);
 assign Z80_ROM_ADDR = {MA, SDA[10:0]};
 
-reg  [3:0] div6_cnt;
-reg        clk4p_en;
-reg        clk4n_en;
-always @(posedge CLK_24M) begin
-	div6_cnt <= div6_cnt + 1'd1;
-	if (div6_cnt == 5) div6_cnt <= 0;
-
-	clk4p_en <= div6_cnt == 0;
-	clk4n_en <= div6_cnt == 3;
-end
-
 cpu_z80 Z80CPU(
-	.CLK_24M(CLK_24M),
-	.CLK4P_EN(clk4p_en),
-	.CLK4N_EN(clk4n_en),
+	.CLK_24M(CLK_48M),
+	.CLK4P_EN(CLK_EN_4M_P),
+	.CLK4N_EN(CLK_EN_4M_N),
 	.nRESET(Z80_nRESET),
 	.SDA(SDA), .SDD_IN(SDD_IN), .SDD_OUT(SDD_OUT),
 	.nIORQ(nIORQ),	.nMREQ(nMREQ),	.nRD(nSDRD), .nWR(nSDWR),
@@ -785,7 +786,7 @@ assign ADPCMB_RD = ~nSDPOE;
 
 jt10 YM2610(
 	.rst(~nRESET),
-	.clk(CLK_24M), .cen((clk4p_en | clk4n_en) & ADPCMA_DATA_READY & ADPCMB_DATA_READY),
+	.clk(CLK_48M), .cen((CLK_EN_4M_P | CLK_EN_4M_N) & ADPCMA_DATA_READY & ADPCMB_DATA_READY),
 	.addr(SDA[1:0]),
 	.din(SDD_OUT), .dout(YM2610_DOUT),
 	.cs_n(n2610CS), .wr_n(n2610WR),
@@ -802,11 +803,14 @@ wire SPR_EN = SYSTEM_CDx ? CD_SPR_EN : 1'b1;
 wire DOTA_GATED = SPR_EN & DOTA;
 wire DOTB_GATED = SPR_EN & DOTB;
 
-lspc2_a2	LSPC(
-	.CLK_24M(CLK_24M),
+lspc2_a2_sync	LSPC(
+	.CLK(CLK_48M),
+	.CLK_EN_24M_P(CLK_EN_24M_P),
+	.CLK_EN_24M_N(CLK_EN_24M_N),
 	.RESET(nRESET),
 	.nRESETP(nRESETP),
-	.LSPC_8M(CLK_8M), .LSPC_4M(CLK_4M),
+	.LSPC_8M(), .LSPC_4M(),
+	.LSPC_EN_4M_P(CLK_EN_4M_P), .LSPC_EN_4M_N(CLK_EN_4M_N),
 	.M68K_ADDR(M68K_ADDR[3:1]), .M68K_DATA(M68K_DATA),
 	.IPL0(IPL0), .IPL1(IPL1),
 	.LSPOE(nLSPOE), .LSPWE(nLSPWE),
@@ -838,7 +842,7 @@ lspc2_a2	LSPC(
 
 wire nRESET_WD;
 neo_b1 B1(
-	.CLK(CLK_24M),	.CLK_6MB(CLK_6MB), .CLK_1HB(CLK_1HB),
+	.CLK(CLK_48M),	.CLK_6MB(CLK_6MB), .CLK_EN_1HB(CLK_EN_1HB),
 	.S1H1(S1H1),
 	.A23I(A23Z), .A22I(A22Z),
 	.M68K_ADDR_U(M68K_ADDR[21:17]), .M68K_ADDR_L(M68K_ADDR[12:1]),
@@ -857,7 +861,7 @@ neo_b1 B1(
 );
 
 spram #(13,16) PALRAM(
-	.clock(CLK_24M), 	// Was CLK_12M
+	.clock(CLK_48M), 	// Was CLK_12M
 	.address({PALBNK, PAL_RAM_ADDR}),
 	.data(M68K_DATA),
 	.wren(~nPAL_WE),

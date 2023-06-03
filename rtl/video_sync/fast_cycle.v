@@ -36,13 +36,13 @@ module fast_cycle_sync(
 	input [8:0] PIXELC,
 	input [8:0] RASTERC,
 	input P50_CO,
-	output nCPU_WR_HIGH,
+	output reg nCPU_WR_HIGH,
 	output [3:0] HSHRINK,
 	output [13:0] PIPE_C,
 	output [15:0] VRAM_HIGH_READ,
 	output [7:0] ACTIVE_RD,
-	output R91_Q,
-	output R91_nQ,
+	output reg R91_Q,
+	output reg R91_nQ,
 	input T140_Q,
 	input T58A_OUT,
 	input T73A_OUT,
@@ -88,7 +88,7 @@ module fast_cycle_sync(
 	wire PARSE_CHAIN /* synthesis keep */;		// DEBUG
 	wire T90A_OUT /* synthesis keep */;			// DEBUG
 	reg [8:0] PARSE_INDEX;
-	reg P39A_OUT;
+	wire P39A_OUT;
 	reg [41:0] SR_SPR_PARAMS;	// 3*14
 	reg S105_OUT;
 	reg [7:0] J87_G152_Q;
@@ -96,24 +96,24 @@ module fast_cycle_sync(
 	reg [7:0] J102_E175_Q;
 	reg J194_Q;
 	
-	wire N98_QC;
+	reg  N98_QC;
 	wire SPR_CHAIN;
-	wire N98_QB;
-	wire N98_QD;
+	reg  N98_QB;
+	reg  N98_QD;
 	wire N98_QD_DELAYED;
-	wire O98_Q;
+	reg  O98_Q;
 	wire nPARSING_DONE;
 	wire S111_Q;
 	wire S111_nQ;
 	wire WR_ACTIVE;
 	wire T129A_nQ;
-	wire T66_Q;
-	wire S67_nQ;
+	reg  T66_Q;
+	reg  S67_nQ;
 	wire S71A_OUT;
-	wire S74_Q;
+	reg  S74_Q;
 	wire T148_Q;
 	wire H198_CO;
-	wire N98_QA;
+	reg  N98_QA;
 	wire I151_CO;
 	
 	assign FVRAM_ADDR = C;
@@ -122,7 +122,7 @@ module fast_cycle_sync(
 	
 	// CPU read
 	// L251 L269 L233 K249
-	wire CLK_CPU_READ_HIGH;
+	reg  CLK_CPU_READ_HIGH /* synthesis keep */;
 	FDS16bit L251(~CLK_CPU_READ_HIGH, F, VRAM_HIGH_READ);
 
 	// Y parsing read
@@ -201,16 +201,16 @@ module fast_cycle_sync(
 	// O103A
 	wire VRAM_HIGH_ADDR_SB = ~&{WR_ACTIVE, O98_Q};
 	BD3 O84A(N98_QD, N98_QD_DELAYED);
-	FDPCell O98(T125A_OUT, N98_QD_DELAYED, 1'b1, RESETP, O98_Q, CLK_CPU_READ_HIGH);
-//	always @(posedge CLK, negedge RESETP)
-//		if (!RESETP) {O98_Q, CLK_CPU_READ_HIGH} <= 2'b01;
-//		else if (T125A_OUT_RISE) {O98_Q, CLK_CPU_READ_HIGH} <= {N98_QD_DELAYED, ~N98_QD_DELAYED};
+	//FDPCell O98(T125A_OUT, N98_QD_DELAYED, 1'b1, RESETP, O98_Q, CLK_CPU_READ_HIGH);
+	always @(posedge CLK, negedge RESETP)
+		if (!RESETP) {O98_Q, CLK_CPU_READ_HIGH} <= 2'b01;
+		else if (T125A_OUT_RISE) {O98_Q, CLK_CPU_READ_HIGH} <= {N98_QD_DELAYED, ~N98_QD_DELAYED};
 //	wire CLK_CPU_READ_HIGH_RISE = ~CLK_CPU_READ_HIGH & ~N98_QD_DELAYED & T125A_OUT_RISE;
 
-	FDPCell N93(N98_QD, F58A_OUT, CLK_CPU_READ_HIGH, 1'b1, nCPU_WR_HIGH);
-//	always @(posedge CLK)
-//		if (~CLK_CPU_READ_HIGH) nCPU_WR_HIGH <= 1;
-//		else if (T125A_OUT_RISE & !N98_QD & N98_QC) nCPU_WR_HIGH <= F58A_OUT;
+	//FDPCell N93(N98_QD, F58A_OUT, CLK_CPU_READ_HIGH, 1'b1, nCPU_WR_HIGH);
+	always @(posedge CLK)
+		if (~CLK_CPU_READ_HIGH) nCPU_WR_HIGH <= 1;
+		else if (T125A_OUT_RISE & !N98_QD & N98_QC) nCPU_WR_HIGH <= F58A_OUT;
 
 	
 	wire F58A_OUT = ~REG_VRAMADDR_MSB | nVRAM_WRITE_REQ;
@@ -320,10 +320,10 @@ module fast_cycle_sync(
 	wire nACTIVE_FULL = ~&{ACTIVE_WR_ADDR[6:5]};	// J100B
 	
 	
-	FS3 N98(T125A_OUT, 4'b0000, R91_nQ, RESETP, {N98_QD, N98_QC, N98_QB, N98_QA});
-//	always @(posedge CLK)
-//		if (!RESETP) {N98_QD, N98_QC, N98_QB, N98_QA} <= 0;
-//		else if (T125A_OUT_RISE) {N98_QD, N98_QC, N98_QB, N98_QA} <= {N98_QC, N98_QB, N98_QA, R91_nQ};
+	//FS3 N98(T125A_OUT, 4'b0000, R91_nQ, RESETP, {N98_QD, N98_QC, N98_QB, N98_QA});
+	always @(posedge CLK)
+		if (!RESETP) {N98_QD, N98_QC, N98_QB, N98_QA} <= 0;
+		else if (T125A_OUT_RISE) {N98_QD, N98_QC, N98_QB, N98_QA} <= {N98_QC, N98_QB, N98_QA, R91_nQ};
 	assign CLK_ACTIVE_RD = ~K131B_OUT;
 	
 	//FDM R91(LSPC_12M, LSPC_1_5M, R91_Q, R91_nQ);
@@ -434,10 +434,10 @@ module fast_cycle_sync(
 	// OK
 	// Pipeline for x position and h-shrink
 	// Implemented as 14-bit 3-stage shift register
-	always @(posedge N98_QD)
-		SR_SPR_PARAMS <= {SR_SPR_PARAMS[27:0], {SPR_CHAIN, O141_Q, F[15:7]}};
-//	always @(posedge CLK)
-//		if (T125A_OUT_RISE & !N98_QD & N98_QC) SR_SPR_PARAMS <= {SR_SPR_PARAMS[27:0], {SPR_CHAIN, O141_Q, F[15:7]}};
+	//always @(posedge N98_QD)
+	//	SR_SPR_PARAMS <= {SR_SPR_PARAMS[27:0], {SPR_CHAIN, O141_Q, F[15:7]}};
+	always @(posedge CLK)
+		if (T125A_OUT_RISE & !N98_QD & N98_QC) SR_SPR_PARAMS <= {SR_SPR_PARAMS[27:0], {SPR_CHAIN, O141_Q, F[15:7]}};
 
 	assign O159_QB = SR_SPR_PARAMS[13];
 	assign HSHRINK = SR_SPR_PARAMS[40:37];

@@ -55,6 +55,8 @@ module lspc2_a2_sync(
 	output VCS,							// LO ROM output enable
 	output LSPC_8M,
 	output LSPC_4M,
+	output LSPC_EN_4M_P,
+	output LSPC_EN_4M_N,
 	
 	output [14:0] SVRAM_ADDR,
 	input [31:0] SVRAM_DATA_IN,
@@ -112,12 +114,12 @@ module lspc2_a2_sync(
 	wire [7:0] P_MUX_LOW;
 	wire [23:0] P_OUT_MUX;
 	
-	wire [3:0] VSHRINK_INDEX;
-	wire [3:0] VSHRINK_LINE;
+	reg  [3:0] VSHRINK_INDEX;
+	reg  [3:0] VSHRINK_LINE;
 	wire [8:0] XPOS;
 	wire [7:0] XPOS_ROUND_UP;
 	wire [2:0] SPR_TILE_AA;
-	wire [3:0] G233_Q;
+	reg  [3:0] G233_Q;
 	wire [7:0] SPR_Y_LOOKAHEAD;
 	wire [8:0] SPR_Y_ADD;
 	wire [7:0] LO_LINE_A;
@@ -135,12 +137,12 @@ module lspc2_a2_sync(
 	wire [13:0] PIPE_C;
 	wire [3:0] SPR_TILEMAP;
 	wire [7:0] ACTIVE_RD;
-	wire [3:0] P201_Q;
+	reg  [3:0] P201_Q;
 	
 	reg D112B_OUT_DELAY;
 	
 	wire LSPC_3M, LSPC_1_5M;
-	wire LSPC_EN_12M, LSPC_EN_6M_P, LSPC_EN_6M_N, LSPC_EN_3M, LSPC_EN_1_5M_P, LSPC_EN_1_5M_N, LSPC_EN_8M_P, LSPC_EN_8M_N;
+	wire LSPC_EN_12M_P, LSPC_EN_12M_N, LSPC_EN_6M_P, LSPC_EN_6M_N, LSPC_EN_3M, LSPC_EN_1_5M_P, LSPC_EN_1_5M_N;
 	
 	assign S1H1 = LSPC_3M;
 	assign S2H1 = LSPC_1_5M;
@@ -153,6 +155,8 @@ module lspc2_a2_sync(
 	// PCK1, PCK2, H
 	reg T172_Q;
 	//reg nPCK1;
+	wire PCK1_EN_P = CLK_EN_24M_N & ~PCK1 & T160A_OUT;
+	wire PCK2_EN_P = CLK_EN_24M_N & ~PCK2 & T160B_OUT;
 	always @(posedge CLK)
 	if (CLK_EN_24M_N) begin
 		// FD2 T168A(CLK_24M, T160A_OUT, PCK1, nPCK1);
@@ -186,17 +190,18 @@ module lspc2_a2_sync(
 	wire U72_OUT = ONE_PIXEL ^ nEVEN_ODD;
 	wire U57B_OUT = nPARITY_INIT & U72_OUT;
 	wire U56A_OUT = ~|{S58A_OUT, U57B_OUT};
-	wire CLK_24MB, LSPC_12M, CK_HSHRINK_REG, U68A_nQ = ~CK_HSHRINK_REG, EVEN_nODD, nEVEN_ODD;
-	FD2 U68A(CLK_24MB, ~LSPC_12M, CK_HSHRINK_REG, /*U68A_nQ*/);
-	FD2 U74A(~U68A_nQ, U56A_OUT, EVEN_nODD, nEVEN_ODD);
-//	always @(posedge CLK)
-//	if (CLK_EN_24M_P) begin
-//		CK_HSHRINK_REG <= ~LSPC_12M;
-//		if (~LSPC_12M && CK_HSHRINK_REG) begin
-//			EVEN_nODD <= U56A_OUT;
-//			nEVEN_ODD <= ~U56A_OUT;
-//		end
-//	end
+	wire CLK_24MB, LSPC_12M, U68A_nQ = ~CK_HSHRINK_REG;
+	reg  CK_HSHRINK_REG, EVEN_nODD, nEVEN_ODD;
+//	FD2 U68A(CLK_24MB, ~LSPC_12M, CK_HSHRINK_REG, /*U68A_nQ*/);
+//	FD2 U74A(~U68A_nQ, U56A_OUT, EVEN_nODD, nEVEN_ODD);
+	always @(posedge CLK)
+	if (CLK_EN_24M_P) begin
+		CK_HSHRINK_REG <= ~LSPC_12M;
+		if (LSPC_12M && CK_HSHRINK_REG) begin
+			EVEN_nODD <= U56A_OUT;
+			nEVEN_ODD <= ~U56A_OUT;
+		end
+	end
 
 
 	
@@ -267,12 +272,12 @@ module lspc2_a2_sync(
 	// This doesn't mean anything special, it just outputs periodic signals to get everything moving
 	wire   T56A_OUT = ~&{LSPC_6M, LSPC_3M};
 	wire   T58A_OUT = ~&{LSPC_6M, LSPC_3M};
-	wire T53_Q, U53_Q;
-	FDM T53(LSPC_12M, T56A_OUT, T53_Q);
-	FDM U53(CLK_24M, T53_Q, U53_Q);
-//	reg T53_Q, U53_Q;
-//	always @(posedge CLK) if (LSPC_EN_12M) T53_Q <= T56A_OUT;
-//	always @(posedge CLK) if (CLK_EN_24M_P) U53_Q <= T53_Q;
+	//wire T53_Q, U53_Q;
+	//FDM T53(LSPC_12M, T56A_OUT, T53_Q);
+	//FDM U53(CLK_24M, T53_Q, U53_Q);
+	reg T53_Q, U53_Q;
+	always @(posedge CLK) if (LSPC_EN_12M_P) T53_Q <= T56A_OUT;
+	always @(posedge CLK) if (CLK_EN_24M_P) U53_Q <= T53_Q;
 
 	assign nPBUS_OUT_EN = U53_Q & T53_Q;
 	
@@ -320,12 +325,13 @@ module lspc2_a2_sync(
 		EVEN2 <= U112_OUT;
 	end
 	
-//	wire T125A_OUT_RISE = ~T125A_OUT & T73A_OUT & (T134_Q | (~T134_Q & ~T140_Q));
+	//wire T125A_OUT_RISE = ~T125A_OUT & T73A_OUT & (T134_Q | (~T134_Q & ~T140_Q));
 	wire T125A_OUT_RISE = ~T125A_OUT & T73A_OUT;
 	wire T125A_OUT = ~U129A_Q | T140_Q;
 	wire Q174B_OUT, P198A_OUT;
 	BD3 P198A(Q174B_OUT, P198A_OUT);
-	FS1 P201(LSPC_12M, P198A_OUT, P201_Q);
+	//FS1 P201(LSPC_12M, P198A_OUT, P201_Q);
+	always @(posedge CLK) if (LSPC_EN_12M_N) P201_Q <= {P201_Q[2:0], ~P198A_OUT};
 	wire P219A_OUT = ~|{O159_QB, ~P201_Q[0]};
 	wire P222A_OUT = ~&{P219A_OUT, ~P201_Q[1]};
 	wire CLK_SPR_TILE = P201_Q[1];
@@ -336,15 +342,15 @@ module lspc2_a2_sync(
 	// NEO-B1 control signals
 	
 	// Latch for CK1/2 and WE1/2
-	LT4 T31(LSPC_12M, {T38A_OUT, T28_OUT, T29A_OUT, T20B_OUT}, T31_P);
-	//reg [3:0] T31_P_REG;
-	//assign T31_P = LSPC_12M ? {T38A_OUT, T28_OUT, T29A_OUT, T20B_OUT} : T31_P_REG;
-	//always @(posedge CLK) if (CLK_EN_24M_P) T31_P_REG <= T31_P;
+	//LT4 T31(LSPC_12M, {T38A_OUT, T28_OUT, T29A_OUT, T20B_OUT}, T31_P);
+	reg [3:0] T31_P_REG;
+	assign T31_P = ~LSPC_12M ? {T38A_OUT, T28_OUT, T29A_OUT, T20B_OUT} : T31_P_REG;
+	always @(posedge CLK) T31_P_REG <= T31_P;
 	// Latch for CK3/4 and WE3/4
-	LT4 U24(LSPC_12M, {U37B_OUT, U21B_OUT, U35A_OUT, U31A_OUT}, U24_P);
-	//reg [3:0] U24_P_REG;
-	//assign U24_P = LSPC_12M ? {U37B_OUT, U21B_OUT, U35A_OUT, U31A_OUT} : U24_P_REG;
-	//always @(posedge CLK) if (CLK_EN_24M_P) U24_P_REG <= U24_P;
+	//LT4 U24(LSPC_12M, {U37B_OUT, U21B_OUT, U35A_OUT, U31A_OUT}, U24_P);
+	reg [3:0] U24_P_REG;
+	assign U24_P = ~LSPC_12M ? {U37B_OUT, U21B_OUT, U35A_OUT, U31A_OUT} : U24_P_REG;
+	always @(posedge CLK) U24_P_REG <= U24_P;
 	
 	// CKs and WEs can only be low when LSPC_12M is high
 	wire WE1 = ~&{T31_P[0], LSPC_12M};
@@ -362,7 +368,7 @@ module lspc2_a2_sync(
 	
 	// Most of the following NAND gates are making 2:1 muxes like on the Alpha68k
 	
-	wire WRITEPX_A, WRITEPX_B;
+	reg WRITEPX_A, WRITEPX_B;
 	// For buffer A:
 	// Clearing write pulses gates
 	wire T22A_OUT = ~&{T50B_OUT, SS1};
@@ -413,34 +419,37 @@ module lspc2_a2_sync(
 	wire U85_OUT = &{U89A_OUT, U92A_OUT, U88B_OUT};
 	wire U86A_OUT = &{U88B_OUT, U94_OUT, U91_OUT};
 	// Final FFs
-	FD2 T82A(CLK_24M, U85_OUT, WRITEPX_A);
-	FD2 T86(CLK_24M, U86A_OUT, WRITEPX_B);
+	//FD2 T82A(CLK_24M, U85_OUT, WRITEPX_A);
+	//FD2 T86(CLK_24M, U86A_OUT, WRITEPX_B);
+	always @(posedge CLK) if (CLK_EN_24M_N) {WRITEPX_A, WRITEPX_B} <= {U85_OUT, U86A_OUT};
 	
 	
 	// LD1/2 signal generation. Those are used to tell NEO-B1 to reload the write address (X position)
 	// Get which buffer should have the rendering pulses, and which should have the reset pulse
-	wire FLIP_nQ;// = FLIP_nQ_s;
-	wire R50_Q, R50_nQ;
-	FDM R50(LSPC_3M, FLIP_nQ, R50_Q, R50_nQ);
-	//reg R50_Q;
-	//wire R50_nQ = ~R50_Q;
-	//always @(posedge CLK) if (LSPC_EN_3M) R50_Q <= FLIP_nQ;
+	//wire FLIP_nQ;
+	//wire R50_Q, R50_nQ;
+	//FDM R50(LSPC_3M, FLIP_nQ, R50_Q, R50_nQ);
+	reg R50_Q;
+	wire R50_nQ = ~R50_Q;
+	always @(posedge CLK) if (LSPC_EN_3M) R50_Q <= FLIP_nQ;
 	
 	// Periodic signals
-	wire R69_Q, R69_nQ;
-	FDM R69(LSPC_3M, LSPC_1_5M, R69_Q, R69_nQ);
-	FDM S55(LSPC_12M, LSPC_3M, S55_Q);
-	wire S55_Q;
-//	reg R69_Q, S55_Q;
-//	wire R69_nQ = ~R69_Q;
-//	always @(posedge CLK) begin
-//		if (LSPC_EN_3M) R69_Q <= LSPC_1_5M;
-//		if (LSPC_EN_12M) S55_Q <= LSPC_3M;
-//	end
+	//wire R69_Q, R69_nQ;
+	//FDM R69(LSPC_3M, LSPC_1_5M, R69_Q, R69_nQ);
+	//FDM S55(LSPC_12M, LSPC_3M, S55_Q);
+	//wire S55_Q;
+	reg R69_Q, S55_Q;
+	wire R69_nQ = ~R69_Q;
+	always @(posedge CLK) begin
+		if (LSPC_EN_3M) R69_Q <= LSPC_1_5M;
+		if (LSPC_EN_12M_P) S55_Q <= LSPC_3M;
+	end
 	wire S53A_OUT = S55_Q & LSPC_6M;
 	// LOAD output
-	FD2 R35A(CLK_24MB, S53A_OUT, LOAD);
-	//always @(posedge CLK) if (CLK_EN_24M_P) LOAD <= S53A_OUT;
+	//FD2 R35A(CLK_24MB, S53A_OUT, LOAD);
+	reg LOAD_r;
+	always @(posedge CLK) if (CLK_EN_24M_P) LOAD_r <= S53A_OUT;
+	assign LOAD = LOAD_r;
 	// LOAD enable
 	//assign LOAD_EN = S55_Q & LSPC_EN_6M_P;
 	
@@ -455,8 +464,10 @@ module lspc2_a2_sync(
 	wire R42B_OUT = ~&{R44B_OUT, R48B_OUT};
 	// Sync
 	wire LD1_D = ~&{R42B_OUT, S53A_OUT};
-	FD2 R32(CLK_24MB, LD1_D, LD1);
-	//always @(posedge CLK) if (CLK_EN_24M_P) LD1 <= LD1_D;
+	//FD2 R32(CLK_24MB, LD1_D, LD1);
+	reg LD1_r;
+	always @(posedge CLK) if (CLK_EN_24M_P) LD1_r <= LD1_D;
+	assign LD1 = LD1_r;
 	
 	// For LD2:
 	// Gate reset LD pulse (once at start of line being shifted out)
@@ -467,50 +478,53 @@ module lspc2_a2_sync(
 	wire R46B_OUT = ~&{R44A_OUT, R46A_OUT};
 	// Sync
 	wire LD2_D = ~&{R46B_OUT, S53A_OUT};
-	FD2 R28A(CLK_24MB, LD2_D, LD2);
-	//always @(posedge CLK) if (CLK_EN_24M_P) LD2 <= LD2_D;
+	//FD2 R28A(CLK_24MB, LD2_D, LD2);
+	reg LD2_r;
+	always @(posedge CLK) if (CLK_EN_24M_P) LD2_r <= LD2_D;
+	assign LD2 = LD2_r;
 	
 	// Reset LD pulse generation. This tells NEO-B1 to reload the address before shifting out a buffer
 	// At this very moment, the address should be 000 on the P bus
 	// Triggers at pixel #264
-	//wire O62_Q = O62_Q_s, P74_Q = P74_Q_s, R53_Q = R53_Q_s, R74_nQ = R74_nQ_s;
-	wire O62_Q, P74_Q, R53_Q, R74_nQ;
-	FDPCell O62(PIXELC[3], PIXELC[8], 1'b1, nRESETP, O62_Q);
-	//reg O62_Q_s;
-	//wire O62_Q_next = (LSPC_EN_6M_N && PIXELC[3:0] == 4'b0111) ? PIXELC[8] : O62_Q;
-	//always @(posedge CLK, negedge nRESETP)
-	//	if (!nRESETP) O62_Q_s <= 0;
-	//	else if (CLK_EN_24M_N) O62_Q_s <= O62_Q_next;
+	//wire O62_Q, P74_Q, R53_Q, R74_nQ;
+	//FDPCell O62(PIXELC[3], PIXELC[8], 1'b1, nRESETP, O62_Q);
+	reg O62_Q;
+	wire O62_Q_next = (LSPC_EN_6M_N && PIXELC[3:0] == 4'b0111) ? PIXELC[8] : O62_Q;
+	always @(posedge CLK, negedge nRESETP)
+		if (!nRESETP) O62_Q <= 0;
+		else if (CLK_EN_24M_N) O62_Q <= O62_Q_next;
 	// Triggers at pixel #268
-	FDPCell P74(PIXELC[2], O62_Q, 1'b1, nRESETP, P74_Q);
-	//reg P74_Q_s;
-	//always @(posedge CLK, negedge nRESETP)
-	//	if (!nRESETP) P74_Q_s <= 0;
-	//	else if (LSPC_EN_6M_N && PIXELC[2:0] == 3'b011) P74_Q_s <= O62_Q;
+	//FDPCell P74(PIXELC[2], O62_Q, 1'b1, nRESETP, P74_Q);
+	reg P74_Q;
+	always @(posedge CLK, negedge nRESETP)
+		if (!nRESETP) P74_Q <= 0;
+		else if (LSPC_EN_6M_N && PIXELC[2:0] == 3'b011) P74_Q <= O62_Q;
 	// Make unique pulse
-	FDM R53(LSPC_3M, R67A_OUT, R53_Q);
-	//reg R53_Q_s;
-	//always @(posedge CLK) if (LSPC_EN_3M) R53_Q_s <= R67A_OUT;
+	//FDM R53(LSPC_3M, R67A_OUT, R53_Q);
+	reg R53_Q;
+	always @(posedge CLK) if (LSPC_EN_3M) R53_Q <= R67A_OUT;
 	wire R67A_OUT = R74_nQ & P74_Q;
-	FDPCell R74(LSPC_1_5M, P74_Q, 1'b1, nRESETP, , R74_nQ);
-	//reg R74_nQ_s;
-	//always @(posedge CLK, negedge nRESETP)
-	//	if (!nRESETP) R74_nQ_s <= 1;
-	//	else if (LSPC_EN_1_5M_P) R74_nQ_s <= ~P74_Q;
+	//FDPCell R74(LSPC_1_5M, P74_Q, 1'b1, nRESETP, , R74_nQ);
+	reg R74_nQ;
+	always @(posedge CLK, negedge nRESETP)
+		if (!nRESETP) R74_nQ <= 1;
+		else if (LSPC_EN_1_5M_P) R74_nQ <= ~P74_Q;
 	
 	// Reload pulse for the h-shrink shift registers
 	// Perdiodic as all sprites take the same time to render regardless of h-shrink value
 	wire R48A_OUT = ~&{S53A_OUT, R69_Q};
-	wire LD_HSHRINK_REG;
-	FD2 R56A(CLK_24MB, R48A_OUT, LD_HSHRINK_REG);
+	//wire LD_HSHRINK_REG;
+	//FD2 R56A(CLK_24MB, R48A_OUT, LD_HSHRINK_REG);
+	reg LD_HSHRINK_REG;
+	always @(posedge CLK) if (CLK_EN_24M_P) LD_HSHRINK_REG <= R48A_OUT;
 	
 	
 	// CHG output
-	wire CHG_D;// = CHG_D_s;
-	FDPCell S137(LSPC_1_5M, CHG_D, 1'b1, nRESETP, CHG);
-	//reg CHG_s;
-	//always @(posedge CLK) if (LSPC_EN_1_5M_P) CHG_s <= CHG_D;
-	//assign CHG = CHG_s;
+	//wire CHG_D;
+	//FDPCell S137(LSPC_1_5M, CHG_D, 1'b1, nRESETP, CHG);
+	reg CHG_r;
+	always @(posedge CLK) if (LSPC_EN_1_5M_P) CHG_r <= CHG_D;
+	assign CHG = CHG_r;
 	
 	// SS1/2 outputs, periodic
 	//wire nFLIP, nCHG_D = ~CHG_D, R15_QD, S48_nQ = S48_nQ_s;
@@ -519,12 +533,12 @@ module lspc2_a2_sync(
 	// Latch nFLIP at pixel 264 (O62_Q). That will make the line buffers switch at pixel 267.
 	// The first write of the new line to the line buffer happens at pixel 268.
 	//FDPCell O69(CLK_24MB, nFLIP, nRESETP, 1'b1, , FLIP_nQ);
-	FDPCell O69(O62_Q, nFLIP, nRESETP, 1'b1, , FLIP_nQ);
-	//reg FLIP_nQ_s;
-	//always @(posedge CLK) if (CLK_EN_24M_N & !O62_Q & O62_Q_next) FLIP_nQ_s <= ~nFLIP;
-	FDPCell R63(PIXELC[2], FLIP_nQ, 1'b1, nRESETP, CHG_D, /*nCHG_D*/);
-	//reg CHG_D_s;
-	//always @(posedge CLK) if (LSPC_EN_6M_N && PIXELC[2:0] == 3'b011) CHG_D_s <= FLIP_nQ;
+	//FDPCell O69(O62_Q, nFLIP, nRESETP, 1'b1, , FLIP_nQ);
+	reg FLIP_nQ;
+	always @(posedge CLK) if (CLK_EN_24M_N & !O62_Q & O62_Q_next) FLIP_nQ <= ~nFLIP;
+	//FDPCell R63(PIXELC[2], FLIP_nQ, 1'b1, nRESETP, CHG_D, /*nCHG_D*/);
+	reg CHG_D;
+	always @(posedge CLK) if (LSPC_EN_6M_N && PIXELC[2:0] == 3'b011) CHG_D <= FLIP_nQ;
 	FDM S48(LSPC_3M, R15_QD, , S48_nQ);
 	//reg S48_nQ_s;
 	//always @(posedge CLK) if (LSPC_EN_3M) S48_nQ_s <= ~R15_QD;
@@ -541,9 +555,11 @@ module lspc2_a2_sync(
 	
 	
 	// V-shrink mirroring and pipeline
-	wire R179_Q, SPR_CONTINUOUS;
-	FDM R179(VCS, SPR_CONTINUOUS, R179_Q);
-	//always @(posedge CLK) if (VCS_EN) R179_Q <= SPR_CONTINUOUS;
+	wire SPR_CONTINUOUS;
+	//wire R179_Q;
+	//FDM R179(VCS, SPR_CONTINUOUS, R179_Q);
+	reg R179_Q;
+	always @(posedge CLK) if (VCS_EN) R179_Q <= SPR_CONTINUOUS;
 	// Mirror V-shrink values for second half of sprite if needed
 	wire S186_OUT = ~(~P235_OUT ^ R179_Q);
 	wire SPRITEMAP_ADDR_MSB = ~S186_OUT;
@@ -552,7 +568,8 @@ module lspc2_a2_sync(
 	wire S162_OUT = VSHRINK_LINE[1] ^ ~S186_OUT;
 	wire S168_OUT = VSHRINK_LINE[0] ^ ~S186_OUT;
 	FDSCell O227(P222A_OUT, {S166_OUT, S164_OUT, S162_OUT, S168_OUT}, O227_Q);
-	FDSCell G233(~P201_Q[1], O227_Q, G233_Q);
+	//FDSCell G233(~P201_Q[1], O227_Q, G233_Q);
+	always @(posedge CLK) if (LSPC_EN_12M_N & P201_Q[1] & P198A_OUT) G233_Q <= O227_Q; // falling edge of P201_Q[1]
 	assign SPR_LINE[0] = SPR_TILE_VFLIP ^ G233_Q[0];
 	assign SPR_LINE[1] = SPR_TILE_VFLIP ^ G233_Q[1];
 	assign SPR_LINE[2] = SPR_TILE_VFLIP ^ G233_Q[2];
@@ -579,15 +596,20 @@ module lspc2_a2_sync(
 	assign VCS = ~R88_nQ;
 	
 	
-	wire T185B_OUT = PCK1 | PCK2;
+	//wire T185B_OUT = PCK1 | PCK2;
 	// Data select lines
-	wire S171_Q, S171_nQ, S183_Q;//, S183_Q_DELAYED;
-	FDM S183(T185B_OUT, S171_Q, S183_Q);
+	//wire S183_Q, S183_Q_DELAYED;
+	//FDM S183(T185B_OUT, S171_Q, S183_Q);
+	reg S183_Q;
+	always @(posedge CLK) if (PCK1_EN_P | PCK2_EN_P) S183_Q <= S171_Q;
 	//BD3 P196(S183_Q, S183_Q_DELAYED);
 	reg S183_Q_DELAYED;
-	always @(posedge CLK_24M) S183_Q_DELAYED <= S183_Q;
+	always @(posedge CLK) S183_Q_DELAYED <= S183_Q;
 
-	FDM S171(U53_Q, LSPC_1_5M, S171_Q, S171_nQ);
+	//wire S171_Q, S171_nQ;
+	//FDM S171(U53_Q, LSPC_1_5M, S171_Q, S171_nQ);
+	reg S171_Q, S171_nQ;
+	always @(posedge CLK) if (CLK_EN_24M_P & ~U53_Q & T53_Q) {S171_Q, S171_nQ} <= {LSPC_1_5M, ~LSPC_1_5M};
 	
 	assign XPOS = PIPE_C[8:0];
 	
@@ -686,7 +708,7 @@ module lspc2_a2_sync(
 	wire CLK_24M = ~CLK_24MB;
 	wire Q53_CO;
 	lspc2_clk_sync LSPCCLK_SYNC(CLK, CLK_EN_24M_P, CLK_EN_24M_N, nRESETP, CLK_24MB, LSPC_12M, LSPC_8M, LSPC_6M, LSPC_4M, LSPC_3M, LSPC_1_5M, Q53_CO,
-							LSPC_EN_12M, LSPC_EN_6M_P, LSPC_EN_6M_N, LSPC_EN_3M, LSPC_EN_1_5M_P, LSPC_EN_1_5M_N, LSPC_EN_8M_P, LSPC_EN_8M_N);
+							LSPC_EN_12M_P, LSPC_EN_12M_N, LSPC_EN_6M_P, LSPC_EN_6M_N, LSPC_EN_3M, LSPC_EN_1_5M_P, LSPC_EN_1_5M_N, LSPC_EN_4M_P, LSPC_EN_4M_N);
 	
 	wire SPR_TILE_VFLIP, SPR_TILE_HFLIP, SPR_AA_3, SPR_AA_2, nCPU_WR_LOW, R91_nQ, CLK_CPU_READ_LOW, T160A_OUT, T160B_OUT, CLK_ACTIVE_RD;
 	wire ACTIVE_RD_PRE8;
@@ -700,7 +722,7 @@ module lspc2_a2_sync(
 	
 	wire nCPU_WR_HIGH, R91_Q, SPR_SIZE0, SPR_SIZE5, O159_QB;
 
-	fast_cycle_sync FCY_SYNC(CLK, CLK_24M, LSPC_EN_12M, LSPC_EN_6M_P, LSPC_EN_3M, LSPC_1_5M, nRESETP, nVRAM_WRITE_REQ,
+	fast_cycle_sync FCY_SYNC(CLK, CLK_24M, LSPC_EN_12M_P, LSPC_EN_6M_P, LSPC_EN_3M, LSPC_1_5M, nRESETP, nVRAM_WRITE_REQ,
 							VRAM_ADDR, VRAM_WRITE, REG_VRAMADDR[15], FLIP, nFLIP,
 							PIXELC, RASTERC, P50_CO, nCPU_WR_HIGH, HSHRINK, PIPE_C, VRAM_HIGH_READ,
 							ACTIVE_RD, R91_Q, R91_nQ, T140_Q, T58A_OUT, T73A_OUT, U129A_Q, T125A_OUT, T125A_OUT_RISE,
