@@ -15,6 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 module watchdog(
+	input CLK,
 	input nLDS, RW,
 	input A23I, A22I,
 	input [21:17] M68K_ADDR_U,
@@ -43,14 +44,18 @@ module watchdog(
 	// MAME says 00110001xxxxxxxxxxxxxxx1 but NEO-B1 doesn't have A16
 	wire WDRESET = &{nRST, ~|{nLDS, RW, A23I, A22I}, M68K_ADDR_U[21:20], ~|{M68K_ADDR_U[19:17]}};
 	
-	always @(posedge WDCLK or posedge WDRESET or negedge nRST)
+	always @(posedge CLK or posedge WDRESET or negedge nRST)
 	begin
+		reg WDCLK_D;
 		if (WDRESET)
 			WDCNT <= 4'b0000;
 		else if (!nRST)
 			WDCNT <= 4'b1000;
-		else
-			WDCNT <= WDCNT + 1'b1;
+		else begin
+			WDCLK_D <= WDCLK;
+			if (~WDCLK_D & WDCLK)
+				WDCNT <= WDCNT + 1'b1;
+		end
 	end
 
 endmodule

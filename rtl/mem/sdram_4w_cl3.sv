@@ -279,6 +279,11 @@ always @(*) begin
 		ds_next[0] = 2'b11;
 		din_next[0] = vram_d;
 		{ oe_next[0], we_next[0] } = { ~vram_we, vram_we };
+	end else if (lo_rom_req ^ lo_rom_req_state) begin
+		next_port[0] = PORT_LOROM;
+		addr_next[0][23:1] = lo_rom_addr[23:1];
+		ds_next[0] = 2'b11;
+		{ oe_next[0], we_next[0] } = 2'b10;
 	end else if (sfix_req ^ sfix_req_state) begin
 		next_port[0] = PORT_SFIX;
 		addr_next[0][23:1] = sfix_addr[23:1];
@@ -298,11 +303,6 @@ always @(*) begin
 	end else if (cpu2_rom_cs && !cpu2_rom_valid) begin
 		next_port[0] = PORT_CPU2_ROM;
 		addr_next[0][23:1] = cpu2_rom_addr[23:1];
-		ds_next[0] = 2'b11;
-		{ oe_next[0], we_next[0] } = 2'b10;
-	end else if (lo_rom_req ^ lo_rom_req_state) begin
-		next_port[0] = PORT_LOROM;
-		addr_next[0][23:1] = lo_rom_addr[23:1];
 		ds_next[0] = 2'b11;
 		{ oe_next[0], we_next[0] } = 2'b10;
 	end

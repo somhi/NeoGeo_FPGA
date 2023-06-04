@@ -23,7 +23,7 @@ module linebuffer(
 	input LOAD,
 	input CLEARING,
 	input [3:0] COLOR_INDEX,
-	input PCK2,
+	input PCK2_EN,
 	input [7:0] SPR_PAL,
 	input [7:0] ADDR_LOAD,
 	output [11:0] DATA_OUT
@@ -56,8 +56,8 @@ module linebuffer(
 	// BR: MESY NEPA...
 	// TL: JETU JUMA...
 	// TR: GENA HARU...
-	always @(posedge PCK2)
-		PAL_REG <= SPR_PAL;
+	always @(posedge CLK)
+		if (PCK2_EN) PAL_REG <= SPR_PAL;
 	
 	// Switch between sprite palette or backdrop clear
 	// BL: MORA NOKU...

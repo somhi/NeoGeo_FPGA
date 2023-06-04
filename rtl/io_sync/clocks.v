@@ -32,6 +32,7 @@ module clocks_sync(
 	output CLK_6MB,
 	output reg CLK_1HB,
 	output CLK_EN_12M,
+	output CLK_EN_12M_N,
 	output CLK_EN_6MB,
 	output CLK_EN_1HB
 );
@@ -61,7 +62,8 @@ module clocks_sync(
 	
 	assign CLK_24M = CLK_EN_24M_N;
 	assign CLK_12M = CLK_DIV[0];
-	assign CLK_EN_12M = CLK_EN_24M_N & ~CLK_DIV[0];
+	assign CLK_EN_12M   = CLK_EN_24M_N & ~CLK_DIV[0];
+	assign CLK_EN_12M_N = CLK_EN_24M_N &  CLK_DIV[0];
 	assign CLK_6MB = ~CLK_DIV[1];
 	assign CLK_3M = CLK_DIV[2];
 	
@@ -69,7 +71,7 @@ module clocks_sync(
 	always @(posedge CLK)
 		if (CLK_EN_12M) CLK_1HB <= ~CLK_3M;
 
-	assign CLK_EN_6MB = CLK_EN_24M_N & CLK_DIV == 3;
+	assign CLK_EN_6MB = CLK_EN_24M_N & CLK_DIV[1:0] == 3;
 	assign CLK_EN_1HB = CLK_EN_24M_N & CLK_DIV == 0;
 	
 endmodule

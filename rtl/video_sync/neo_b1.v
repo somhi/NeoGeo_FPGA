@@ -18,13 +18,13 @@
 
 module neo_b1(
 	input CLK,					// For linebuffers RAM
-	input CLK_6MB,			// Pixel clock
+	input CLK_EN_6MB,			// Pixel clock
 	input CLK_EN_1HB,			// 3MHz 2px Even/odd pixel selection
 	
 	input [23:0] PBUS,		// Used to retrieve LB addresses loads, SPR palette # and FIX palette # from LSPC
 	input [7:0] FIXD,			// 2 fix pixels
-	input PCK1,
-	input PCK2,
+	input PCK1_EN,
+	input PCK2_EN,
 	input CHBL,					// Force PA to zeros
 	input BNKB,					// For Watchdog and PA
 	input [3:0] GAD, GBD,	// 2 sprite pixels
@@ -81,15 +81,15 @@ module neo_b1(
 	wire FIX_OPAQUE = |{FIX_COLOR} & EN_FIX;
 
 	// GETU FUCA...
-	always @(posedge PCK1)
-		FIX_PAL_REG <= PBUS[19:16];
+	always @(posedge CLK)
+		if (PCK1_EN) FIX_PAL_REG <= PBUS[19:16];
 
 	assign SPR_PAL = PBUS[23:16];
 	
-	linebuffer RAMBR(CLK, CK[0], WE[0], LD1, SS1, GAD, PCK2, SPR_PAL, PBUS[7:0], RAMBR_OUT);
-	linebuffer RAMBL(CLK, CK[1], WE[1], LD1, SS1, GBD, PCK2, SPR_PAL, PBUS[15:8], RAMBL_OUT);
-	linebuffer RAMTR(CLK, CK[2], WE[2], LD2, SS2, GAD, PCK2, SPR_PAL, PBUS[7:0], RAMTR_OUT);
-	linebuffer RAMTL(CLK, CK[3], WE[3], LD2, SS2, GBD, PCK2, SPR_PAL, PBUS[15:8], RAMTL_OUT);
+	linebuffer RAMBR(CLK, CK[0], WE[0], LD1, SS1, GAD, PCK2_EN, SPR_PAL, PBUS[7:0], RAMBR_OUT);
+	linebuffer RAMBL(CLK, CK[1], WE[1], LD1, SS1, GBD, PCK2_EN, SPR_PAL, PBUS[15:8], RAMBL_OUT);
+	linebuffer RAMTR(CLK, CK[2], WE[2], LD2, SS2, GAD, PCK2_EN, SPR_PAL, PBUS[7:0], RAMTR_OUT);
+	linebuffer RAMTL(CLK, CK[3], WE[3], LD2, SS2, GBD, PCK2_EN, SPR_PAL, PBUS[15:8], RAMTL_OUT);
 	
 	assign MUX_BA = {TMS0, S1H1};
 	
@@ -125,15 +125,15 @@ module neo_b1(
 	assign PA_MUX_B = CHBL ? 12'h000 : PA_MUX_A;
 
 	// KAWE KESE...
-	always @(posedge CLK_6MB)
-		/*if (CLK_EN_6MB)*/ PA_VIDEO <= PA_MUX_B;
+	always @(posedge CLK)
+		if (CLK_EN_6MB) PA_VIDEO <= PA_MUX_B;
 	
 	// KUTE KENU...
 	assign PA = nCPU_ACCESS ? PA_VIDEO : M68K_ADDR_L;
 
 
 	// Note: nRESET is sync'd to frame start
-	watchdog WD(nLDS, RW, A23I, A22I, M68K_ADDR_U, BNKB, nHALT, nRESET, nRST);
+	watchdog WD(CLK, nLDS, RW, A23I, A22I, M68K_ADDR_U, BNKB, nHALT, nRESET, nRST);
 	//assign nHALT = 1;
 	//assign nRESET = 1;
 
