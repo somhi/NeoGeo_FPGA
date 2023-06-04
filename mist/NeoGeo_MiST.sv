@@ -228,15 +228,28 @@ wire        sample_romb_ack;
 wire [25:0] sample_romb_addr;
 wire [63:0] sample_romb_dout;
 
+function [5:0] ceil_bit;
+	input [31:0] value;
+	integer i, bits;
+	begin
+		ceil_bit = 0;
+		bits = 0;
+		for (i = 0; i < 31; i = i + 1)
+			if (value[i]) begin
+				ceil_bit = i;
+				bits = bits + 1;
+			end
+		if (bits > 1) ceil_bit = ceil_bit + 1;
+   end
+endfunction
+
 // Cart download control
 wire        system_rom_write = ioctl_downl && (ioctl_index == 0 || ioctl_index == 1);
 wire        cart_rom_write = ioctl_downl && ioctl_index == 2;
 reg         port1_req, port1_ack;
 reg         port2_req, port2_ack;
 reg  [31:0] PSize, SSize, MSize, V1Size, V2Size, CSize;
-wire [31:0] V1Mask = V1Size - 1'd1;
-wire [31:0] V2Mask = V2Size - 1'd1;
-wire [31:0] CMask = CSize - 1'd1;
+reg  [31:0] CMask, V1Mask, V2Mask;
 reg   [2:0] region;
 reg  [25:0] offset;
 reg  [25:0] region_size;
@@ -316,6 +329,12 @@ always @(posedge CLK_48M) begin
 		end
 		default: ;
 	endcase
+
+	if (cart_rom_write) begin
+		CMask  <= (1<<ceil_bit(CSize)) - 1'd1;
+		V1Mask <= (1<<ceil_bit(V1Size)) - 1'd1;
+		V2Mask <= (1<<ceil_bit(V2Size)) - 1'd1;
+	end
 end
 
 wire [23:0] system_port1_addr = ioctl_addr[23:19] == 0 ? { 5'b1111_1, ioctl_addr[18:0] } : // system ROM
