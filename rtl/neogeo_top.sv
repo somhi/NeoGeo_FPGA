@@ -231,7 +231,7 @@ assign SLOW_SCB1_VRAM_DATA_OUT = SLOW_VRAM_DATA_OUT;
 wire   VRAM_SPRMAP_CYCLE = VRAM_CYCLE == 2'b10;
 wire   VRAM_FIXMAP_CYCLE = VRAM_CYCLE == 2'b00;
 wire   VRAM_CPU_CYCLE    = VRAM_CYCLE == 2'b01;
-assign SPRMAP_RD = VRAM_SPRMAP_CYCLE;// | VRAM_FIXMAP_CYCLE; // the address is ready even in the fixmap read cycle
+assign SPRMAP_RD = VRAM_SPRMAP_CYCLE | VRAM_FIXMAP_CYCLE; // the address is ready even in the fixmap read cycle
 
 wire [15:0] CPU_VRAM_ADDR;
 wire        SCB1_CS = CPU_VRAM_ADDR[15:12] < 4'd7;

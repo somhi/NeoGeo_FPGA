@@ -356,13 +356,11 @@ wire [25:0] port2_addr = region == 3 ? CSize + offset : // V1 ROM
 always @(posedge CLK_48M) begin
 	reg SLOW_VRAM_WE_OLD;
 	reg SLOW_VRAM_RD_OLD;
-	reg SPRMAP_RD_OLD;
 	reg [14:0] SPRMAP_ADDR_OLD;
 	reg [14:0] SLOW_VRAM_ADDR_OLD;
 
 	SLOW_VRAM_WE_OLD <= SLOW_VRAM_WE;
 	SLOW_VRAM_RD_OLD <= SLOW_VRAM_RD;
-	SPRMAP_RD_OLD <= SPRMAP_RD;
 
 	if ((!SLOW_VRAM_WE_OLD && SLOW_VRAM_WE) || (!SLOW_VRAM_RD_OLD && SLOW_VRAM_RD && SLOW_VRAM_ADDR_OLD != SLOW_VRAM_ADDR)) begin
 		sdr_vram_req <= ~sdr_vram_req;
@@ -372,7 +370,8 @@ always @(posedge CLK_48M) begin
 		sdr_vram_sel <= 1;
 		SLOW_VRAM_ADDR_OLD <= SLOW_VRAM_ADDR;
 	end
-	if (!SPRMAP_RD_OLD && SPRMAP_RD && SPRMAP_ADDR[14:1] != SPRMAP_ADDR_OLD[14:1]) begin
+	else
+	if (sdr_vram_req == sdr_vram_ack && SPRMAP_RD && SPRMAP_ADDR[14:1] != SPRMAP_ADDR_OLD[14:1]) begin
 		sdr_vram_req <= ~sdr_vram_req;
 		sdr_vram_addr <= SPRMAP_ADDR;
 		sdr_vram_we <= 0;
