@@ -33,6 +33,8 @@ module NeoGeo_MiST(
 
 wire [6:0] core_mod;
 
+`define DEBUG 1
+
 localparam CONF_STR = {
 	"NEOGEO;;",
 	"F,ROM,Load BIOS;",
@@ -45,6 +47,10 @@ localparam CONF_STR = {
 	"O8,[DIP] Settings,OFF,ON;",
 	"O9,[DIP] Freeplay,OFF,ON;",
 	"OA,[DIP] Freeze,OFF,ON;",
+`ifdef DEBUG
+	"OE,FIX Layer,ON,OFF;",
+	"OF,Sprite Layer,ON,OFF;",
+`endif
 	"T0,Reset;",
 	"V,v1.0.",`BUILD_DATE
 };
@@ -58,6 +64,9 @@ wire        oneplayer = 1'b0;
 wire  [2:0] dipsw = status[10:8];
 wire        systype = status[1];
 wire        vmode = status[3];
+
+wire        fix_en = ~status[14];
+wire        spr_en = ~status[15];
 
 assign LED = ~ioctl_downl;
 assign SDRAM_CKE = 1; 
@@ -186,6 +195,7 @@ wire [15:0] SFIX_DATA;
 wire        SFIX_RD;
 
 reg         lo_rom_req;
+wire        LO_ROM_RD;
 wire [15:0] LO_ROM_ADDR;
 wire [15:0] LO_ROM_DATA;
 
@@ -328,23 +338,27 @@ always @(posedge CLK_48M) begin
 	reg SLOW_VRAM_WE_OLD;
 	reg SLOW_VRAM_RD_OLD;
 	reg SPRMAP_RD_OLD;
+	reg [14:0] SPRMAP_ADDR_OLD;
+	reg [14:0] SLOW_VRAM_ADDR_OLD;
 
 	SLOW_VRAM_WE_OLD <= SLOW_VRAM_WE;
 	SLOW_VRAM_RD_OLD <= SLOW_VRAM_RD;
 	SPRMAP_RD_OLD <= SPRMAP_RD;
 
-	if ((!SLOW_VRAM_WE_OLD && SLOW_VRAM_WE) || (!SLOW_VRAM_RD_OLD && SLOW_VRAM_RD)) begin
+	if ((!SLOW_VRAM_WE_OLD && SLOW_VRAM_WE) || (!SLOW_VRAM_RD_OLD && SLOW_VRAM_RD && SLOW_VRAM_ADDR_OLD != SLOW_VRAM_ADDR)) begin
 		sdr_vram_req <= ~sdr_vram_req;
 		sdr_vram_addr <= SLOW_VRAM_ADDR;
 		sdr_vram_we <= SLOW_VRAM_WE;
 		sdr_vram_d <= SLOW_VRAM_DATA_OUT;
 		sdr_vram_sel <= 1;
+		SLOW_VRAM_ADDR_OLD <= SLOW_VRAM_ADDR;
 	end
-	if (!SPRMAP_RD_OLD && SPRMAP_RD) begin
+	if (!SPRMAP_RD_OLD && SPRMAP_RD && SPRMAP_ADDR[14:1] != SPRMAP_ADDR_OLD[14:1]) begin
 		sdr_vram_req <= ~sdr_vram_req;
 		sdr_vram_addr <= SPRMAP_ADDR;
 		sdr_vram_we <= 0;
 		sdr_vram_sel <= 0;
+		SPRMAP_ADDR_OLD <= SPRMAP_ADDR;
 	end
 end
 
@@ -358,8 +372,10 @@ end
 // LO ROM->SDRAM control
 always @(posedge CLK_48M) begin
 	reg [15:0] LO_ROM_ADDR_OLD;
-	LO_ROM_ADDR_OLD <= LO_ROM_ADDR;
-	if (LO_ROM_ADDR_OLD[15:1] != LO_ROM_ADDR[15:1]) lo_rom_req <= ~lo_rom_req;
+	if (LO_ROM_RD) begin
+		LO_ROM_ADDR_OLD <= LO_ROM_ADDR;
+		if (LO_ROM_ADDR_OLD[15:1] != LO_ROM_ADDR[15:1]) lo_rom_req <= ~lo_rom_req;
+	end
 end
 
 // CROM->SDRAM control
@@ -540,6 +556,8 @@ neogeo_top neogeo_top (
 	.P1_IN         ( P1_IN ),
 	.P2_IN         ( P2_IN ),
 	.DIPSW         ( dipsw ),
+	.DBG_FIX_EN    ( fix_en ),
+	.DBG_SPR_EN    ( spr_en ),
 
 	.RED           ( R ),
 	.GREEN         ( G ),
@@ -576,6 +594,7 @@ neogeo_top neogeo_top (
 	.SFIX_RD             ( SFIX_RD   ),
 
 	.LO_ROM_ADDR         ( LO_ROM_ADDR ),
+	.LO_ROM_RD           ( LO_ROM_RD ),
 	.LO_ROM_DATA         ( LO_ROM_ADDR[0] ? LO_ROM_DATA[15:8] : LO_ROM_DATA[7:0] ),
 
 	.CROM_ADDR           ( CROM_ADDR ),

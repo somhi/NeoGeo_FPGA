@@ -50,10 +50,12 @@ module neogeo_top
 	input         COIN2,
 	input   [9:0] P1_IN,
 	input   [9:0] P2_IN,
+	input         DBG_FIX_EN,
+	input         DBG_SPR_EN,
 
-	output  [7:0] RED,
-	output  [7:0] GREEN,
-	output  [7:0] BLUE,
+	output reg [7:0] RED,
+	output reg [7:0] GREEN,
+	output reg [7:0] BLUE,
 	output        HSYNC,
 	output        VSYNC,
 	output        HBLANK,
@@ -219,7 +221,7 @@ wire  [1:0] VRAM_CYCLE;
 wire [14:0] SLOW_VRAM_ADDR;
 wire [15:0] SLOW_VRAM_DATA_OUT;
 wire [15:0] SLOW_FIX_VRAM_DATA_IN;
-wire [31:0] SLOW_VRAM_DATA_IN = SPRMAP_RD ? SPRMAP_DATA : (SCB1_CS & VRAM_CPU_CYCLE) ? SLOW_SCB1_VRAM_DATA_IN : SLOW_FIX_VRAM_DATA_IN;
+wire [31:0] SLOW_VRAM_DATA_IN = VRAM_SPRMAP_CYCLE ? SPRMAP_DATA : (SCB1_CS & VRAM_CPU_CYCLE) ? SLOW_SCB1_VRAM_DATA_IN : SLOW_FIX_VRAM_DATA_IN;
 
 assign SLOW_SCB1_VRAM_WE = ~BWE && SCB1_CS;
 assign SLOW_SCB1_VRAM_RD = ~BOE && SCB1_CS && VRAM_CPU_CYCLE;
@@ -229,7 +231,7 @@ assign SLOW_SCB1_VRAM_DATA_OUT = SLOW_VRAM_DATA_OUT;
 wire   VRAM_SPRMAP_CYCLE = VRAM_CYCLE == 2'b10;
 wire   VRAM_FIXMAP_CYCLE = VRAM_CYCLE == 2'b00;
 wire   VRAM_CPU_CYCLE    = VRAM_CYCLE == 2'b01;
-assign SPRMAP_RD = VRAM_SPRMAP_CYCLE;
+assign SPRMAP_RD = VRAM_SPRMAP_CYCLE;// | VRAM_FIXMAP_CYCLE; // the address is ready even in the fixmap read cycle
 
 wire [15:0] CPU_VRAM_ADDR;
 wire        SCB1_CS = CPU_VRAM_ADDR[15:12] < 4'd7;
@@ -809,8 +811,8 @@ jt10 YM2610(
 
 // For Neo CD only
 wire VIDEO_EN = SYSTEM_CDx ? CD_VIDEO_EN : 1'b1;
-wire FIX_EN = SYSTEM_CDx ? CD_FIX_EN : 1'b1;
-wire SPR_EN = SYSTEM_CDx ? CD_SPR_EN : 1'b1;
+wire FIX_EN = DBG_FIX_EN & (SYSTEM_CDx ? CD_FIX_EN : 1'b1);
+wire SPR_EN = DBG_SPR_EN & (SYSTEM_CDx ? CD_SPR_EN : 1'b1);
 wire DOTA_GATED = SPR_EN & DOTA;
 wire DOTB_GATED = SPR_EN & DOTB;
 
@@ -890,8 +892,12 @@ wire [7:0] R8 = R6[6] ? 8'd0 : {R6[5:0],  R6[4:3]};
 wire [7:0] G8 = G6[6] ? 8'd0 : {G6[5:0],  G6[4:3]};
 wire [7:0] B8 = B6[6] ? 8'd0 : {B6[5:0],  B6[4:3]};
 
-assign RED   = ~SHADOW ? R8 : {1'b0, R8[7:1]};
-assign GREEN = ~SHADOW ? G8 : {1'b0, G8[7:1]};
-assign BLUE  = ~SHADOW ? B8 : {1'b0, B8[7:1]};
+always @(posedge CLK_48M) begin
+	if (CLK_EN_6MB) begin
+		RED   <=  ~SHADOW ? R8 : {1'b0, R8[7:1]};
+		GREEN <= ~SHADOW ? G8 : {1'b0, G8[7:1]};
+		BLUE  <= ~SHADOW ? B8 : {1'b0, B8[7:1]};
+	end
+end
 
 endmodule

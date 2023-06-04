@@ -172,8 +172,9 @@ reg [3:0] t;
 always @(posedge clk) begin
 	t <= t + 1'd1;
 	if (t == STATE_LAST) t <= STATE_RAS0;
-	//if (t == STATE_RAS0 && !refresh && !oe_next[0] && !we_next[0] && !oe_next[1] && !we_next[1] && !oe_latch[1]) t <= STATE_RAS0;
-	//if (t == STATE_RAS1 && !oe_latch[0] && !we_latch[0] && !oe_next[1] && !we_next[1] && !need_refresh) t <= STATE_RAS0;
+	if (t == STATE_RAS0 && !refresh && !oe_next[0] && !we_next[0] && !oe_next[1] && !we_next[1] && !oe_latch[1] && !we_latch[1]) t <= STATE_RAS0;
+	if (t == STATE_RAS0 && !refresh && !oe_next[0] && !we_next[0] && (oe_next[1] || we_next[1]) && !oe_latch[1] && !we_latch[1]) t <= STATE_RAS1;
+	if (t == STATE_RAS1 && !oe_latch[0] && !we_latch[0] && !oe_next[1] && !we_next[1] && !need_refresh) t <= STATE_RAS0;
 end
 
 // ---------------------------------------------------------------------
@@ -230,7 +231,7 @@ reg  [1:0] ds[2];
 
 reg        port1_state;
 reg        port2_state;
-reg        vram_req_state;
+reg        vram_req_state, vram_sel_latch;
 reg        sfix_req_state;
 reg        lo_rom_req_state;
 reg        sp_req_state;
@@ -390,7 +391,7 @@ always @(posedge clk) begin
 			case (next_port[0])
 				PORT_REQ: port1_state <= port1_req;
 				PORT_SFIX: sfix_req_state <= sfix_req;
-				PORT_VRAM: vram_req_state <= vram_req;
+				PORT_VRAM: begin vram_req_state <= vram_req; vram_sel_latch <= vram_sel; end
 				PORT_LOROM: lo_rom_req_state <= lo_rom_req;
 				default: ;
 			endcase;
@@ -470,14 +471,14 @@ always @(posedge clk) begin
 				PORT_CPU1_RAM: begin cpu1_ram_q <= sd_din; cpu1_ram_valid <= 1; end
 				PORT_CPU2_ROM: begin cpu2_rom_q <= sd_din; cpu2_rom_valid <= 1; end
 				PORT_SFIX: begin sfix_q[15:0] <= sd_din; sfix_ack <= sfix_req; end
-				PORT_VRAM: if (vram_sel) vram_q2 <= sd_din; else vram_q1[15:0] <= sd_din;
+				PORT_VRAM: if (vram_sel_latch) vram_q2 <= sd_din; else vram_q1[15:0] <= sd_din;
 				PORT_LOROM: begin lo_rom_q <= sd_din; lo_rom_ack <= lo_rom_req; end
 				default: ;
 			endcase;
 		end
 		if(t == STATE_READ0b && oe_latch[0]) begin
 			case(port[0])
-				PORT_VRAM: begin if (!vram_sel) vram_q1[31:16] <= sd_din; vram_ack <= vram_req; end
+				PORT_VRAM: begin if (!vram_sel_latch) vram_q1[31:16] <= sd_din; vram_ack <= vram_req; end
 				default: ;
 			endcase;
 		end

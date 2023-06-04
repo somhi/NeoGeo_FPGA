@@ -100,6 +100,8 @@ wire         EVEN2;
 wire         CHG;					// Also called TMS0
 wire         LD1, LD2;					// Buffer address load
 wire         PCK1, PCK2;
+wire         PCK1_EN_N, PCK2_EN_N;
+wire         PCK1_EN_P, PCK2_EN_P;
 wire [ 3: 0] WE;
 wire [ 3: 0] CK;
 wire         SS1, SS2;					// Buffer pair selection for B1
@@ -143,6 +145,8 @@ lspc2_a2_sync	LSPC_sync(
 	.CA4(CA4), .S2H1(S2H1), .S1H1(S1H1),
 	.LOAD(LOAD), .H(H), .EVEN1(EVEN1), .EVEN2(EVEN2),
 	.PCK1(PCK1), .PCK2(PCK2),
+	.PCK1_EN_N(PCK1_EN_N), .PCK2_EN_N(PCK2_EN_N),
+	.PCK1_EN_P(PCK1_EN_P), .PCK2_EN_P(PCK2_EN_P),
 	.CHG(CHG),
 	.LD1(LD1), .LD2(LD2),
 	.WE(WE), .CK(CK), .SS1(SS1), .SS2(SS2),
@@ -160,6 +164,7 @@ lspc2_a2_sync	LSPC_sync(
 	.SPRMAP_ADDR(SPRMAP_ADDR),
 	.VRAM_ADDR(CPU_VRAM_ADDR),
 	.VRAM_CYCLE(VRAM_CYCLE),
+	.LO_ROM_RD(),
 	.LO_ROM_ADDR(LO_ROM_ADDR)
 );
 
@@ -201,25 +206,30 @@ lspc2_a2	LSPC(
 	.LO_ROM_ADDR()
 );
 
-wire         CLK_12M, CLK_EN_12M, CLK_68KCLK, CLK_68KCLKB, CLK_6MB, CLK_1HB, CLK_EN_6MB, CLK_EN_1HB;
+wire         CLK_12M, CLK_EN_12M, CLK_EN_12M_N, CLK_68KCLK, CLK_68KCLKB, CLK_6MB, CLK_1HB, CLK_EN_6MB, CLK_EN_1HB;
 
 clocks CLK(CLK_24M, nRESETP, , , , , );
-clocks_sync CLK_SYNC(CLK_48M, ~CLK_24M, CLK_24M, nRESETP, , CLK_12M, CLK_68KCLK, CLK_68KCLKB,,, CLK_6MB, CLK_1HB, , CLK_EN_6MB, CLK_EN_1HB);
+clocks_sync CLK_SYNC(CLK_48M, ~CLK_24M, CLK_24M, nRESETP, , CLK_12M, CLK_68KCLK, CLK_68KCLKB,,, CLK_6MB, CLK_1HB, CLK_EN_12M, CLK_EN_12M_N, CLK_EN_6MB, CLK_EN_1HB);
 
 wire [19:0] C_LATCH;
 reg   [3:0] C_LATCH_EXT;
 wire [15:0] S_LATCH;
 
 neo_273 NEO273(
+	.CLK(CLK_48M),
 	.PBUS(PBUS[19:0]),
-	.PCK1B(~PCK1), .PCK2B(~PCK2),
+	.PCK1B_EN(PCK1_EN_N), .PCK2B_EN(PCK2_EN_N),
 	.C_LATCH(C_LATCH), .S_LATCH(S_LATCH)
 );
 
 
 // 4 MSBs not handled by NEO-273
-always @(negedge PCK1)
-	C_LATCH_EXT <= PBUS[23:20];
+//always @(negedge PCK1)
+//	C_LATCH_EXT <= PBUS[23:20];
+always @(posedge CLK_48M) begin
+	reg PCK1_D;
+	if (PCK1_EN_N) C_LATCH_EXT <= PBUS[23:20];
+end
 
 assign CROM_ADDR = {C_LATCH_EXT, C_LATCH, 3'b000};// & CROM_MASK;
 
@@ -263,7 +273,8 @@ end
 wire [31:0] CR = ~CA4_REG ? CR_DOUBLE[63:32] : CR_DOUBLE[31:0];
 
 neo_zmc2 ZMC2(
-	.CLK_12M(CLK_12M),
+	.CLK(CLK_48M),
+	.CLK_EN_12M(CLK_EN_12M_N),
 	.EVEN(EVEN1), .LOAD(LOAD), .H(H),
 	.CR(CR),
 	.GAD(GAD), .GBD(GBD),
@@ -277,14 +288,14 @@ assign FIXD = S2H1 ? SROM_DATA[15:8] : SROM_DATA[7:0];
 
 wire nRESET_WD;
 neo_b1 B1(
-	.CLK(CLK_48M),	.CLK_6MB(CLK_6MB), .CLK_EN_1HB(CLK_EN_1HB),
+	.CLK(CLK_48M),	.CLK_EN_6MB(CLK_EN_6MB), .CLK_EN_1HB(CLK_EN_1HB),
 	.S1H1(S1H1),
 	.A23I(A23Z), .A22I(A22Z),
 	.M68K_ADDR_U(M68K_ADDR[21:17]), .M68K_ADDR_L(M68K_ADDR[12:1]),
 	.nHALT(nHALT), .nLDS(nLDS), .RW(M68K_RW), .nAS(nAS),
 	.PBUS(PBUS),
 	.FIXD(FIXD),
-	.PCK1(PCK1), .PCK2(PCK2),
+	.PCK1_EN(PCK1_EN_P), .PCK2_EN(PCK2_EN_P),
 	.CHBL(CHBL), .BNKB(nBNKB),
 	.GAD(GAD), .GBD(GBD),
 	.WE(WE), .CK(CK),
