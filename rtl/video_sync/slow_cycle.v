@@ -19,10 +19,12 @@
 /* verilator lint_off PINMISSING */
 
 module slow_cycle_sync(
+	input CLK,
 	input CLK_24M,
 	input CLK_24MB,
 	input LSPC_12M,
 	input LSPC_6M,
+	input LSPC_EN_6M_N,
 	input LSPC_3M,
 	input LSPC_1_5M,
 	input RESETP,
@@ -30,6 +32,7 @@ module slow_cycle_sync(
 	input [15:0] VRAM_WRITE,
 	input REG_VRAMADDR_MSB,
 	input PIXEL_H8,
+	input PIXEL_H8_RISE,
 	input PIXEL_H256,
 	input [7:3] RASTERC,
 	input [3:0] PIXEL_HPLUS,
@@ -147,14 +150,20 @@ module slow_cycle_sync(
 	assign Q174B_OUT = ~Q162_Q[3];
 	assign N169A_OUT = ~|{Q174B_OUT, ~CLK_CPU_READ_LOW};
 	
-	wire T75_Q, O62_Q, O62_nQ;
+	wire T75_Q/*, O62_Q, O62_nQ*/;
 	FDM T75(CLK_24M, T64A_OUT, T75_Q);
 	assign CLK_CPU_READ_LOW = Q162_Q[1];
 	assign T160B_OUT = ~|{T75_Q, ~Q162_Q[0]};
 	assign T160A_OUT = ~|{Q162_Q[0], T75_Q};
 	wire T64A_OUT = ~&{LSPC_12M, LSPC_6M, LSPC_3M};
 	
-	FDPCell O62(PIXEL_H8, PIXEL_H256, 1'b1, RESETP, O62_Q, O62_nQ);
+	//FDPCell O62(PIXEL_H8, PIXEL_H256, 1'b1, RESETP, O62_Q, O62_nQ);
+	reg O62_Q, O62_nQ;
+	always @(posedge CLK)
+		if (~RESETP)
+			{O62_Q, O62_nQ} <= 2'b01;
+		else if (PIXEL_H8_RISE)
+			{O62_Q, O62_nQ} <= {PIXEL_H256, ~PIXEL_H256};
 	
 	wire F58B_OUT = REG_VRAMADDR_MSB | nVRAM_WRITE_REQ;
 	FDPCell Q106(~LSPC_1_5M, F58B_OUT, CLK_CPU_READ_LOW, 1'b1, nCPU_WR_LOW);
