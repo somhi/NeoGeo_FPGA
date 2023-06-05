@@ -9,6 +9,7 @@ HDL_FILES = \
 	../rtl/video/slow_cycle.v \
 	../rtl/video${SYNC}/hshrink.v \
 	../rtl/video${SYNC}/irq.v \
+	../rtl/video/irq.v \
 	../rtl/video${SYNC}/neo_b1.v \
 	../rtl/video${SYNC}/linebuffer.v \
 	../rtl/video${SYNC}/lspc2_a2.v \
@@ -16,6 +17,7 @@ HDL_FILES = \
 	../rtl/video${SYNC}/lspc2_clk.v \
 	../rtl/video/lspc2_clk.v \
 	../rtl/video${SYNC}/lspc_regs.v \
+	../rtl/video/lspc_regs.v \
 	../rtl/video${SYNC}/lspc_timer.v \
 	../rtl/video${SYNC}/neo_273.v \
 	../rtl/video${SYNC}/neo_cmc.v \
@@ -38,6 +40,7 @@ HDL_FILES = \
 	../rtl/cells/fs2.v \
 	../rtl/cells/fs3.v \
 	../rtl/cells/lt4.v \
+	../rtl/io${SYNC}/register.v \
 	../rtl/io/clocks.v \
 	../rtl/io${SYNC}/clocks.v \
 	../rtl/io${SYNC}/resetp.v \

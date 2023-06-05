@@ -17,7 +17,8 @@
 
 /* verilator lint_off PINMISSING */
 
-module lspc_regs(
+module lspc_regs_sync(
+	input CLK,
 	input RESET,
 	input RESETP,
 	
@@ -51,7 +52,7 @@ module lspc_regs(
 	output AA_DISABLE,				// Auto-animation disable
 	output TIMER_STOP,
 	output nVRAM_WRITE_REQ,
-	input D112B_OUT
+	input VRAM_WRITE_ACK //D112B_OUT
 );
 
 	reg [7:0] WR_DECODED /* synthesis keep */;		// DEBUG
@@ -111,35 +112,53 @@ module lspc_regs(
 	
 	// CPU read data latch
 	// B138 A123 A68 A28
-	FDS16bit B138(~LSPOE, CPU_DATA_MUX, CPU_DATA_OUT);
-
+	//FDS16bit B138(~LSPOE, CPU_DATA_MUX, CPU_DATA_OUT);
+	register #(16) B138(CLK, 1'b0, 1'b0, ~LSPOE, CPU_DATA_MUX, CPU_DATA_OUT);
 
 	// CPU write to REG_VRAMRW
 	// F155 D131 D121 E154
-	FDS16bit F155(~WR_VRAM_RW, M68K_DATA, REG_VRAMRW);
+	//FDS16bit F155(~WR_VRAM_RW, M68K_DATA, REG_VRAMRW);
+	register #(16) F155(CLK, 1'b0, 1'b0, ~WR_VRAM_RW, M68K_DATA, REG_VRAMRW);
 
 	// CPU VRAM write request flag handling
 	// Set by write to REG_VRAMRW, reset when write is done or write to REG_VRAMADDR
-	wire D32A_OUT = D28_nQ & 1'b1;	// Used for test mode
-	wire D38_Q, D28_nQ;
-	FDPCell D38(~WR_VRAM_RW, 1'b1, 1'b1, D32A_OUT, D38_Q, nVRAM_WRITE_REQ);
-	FDPCell D28(D112B_OUT, 1'b1, 1'b1, D38_Q, , D28_nQ);
-	
+	//wire D32A_OUT = D28_nQ & 1'b1;	// Used for test mode
+	//wire D28_nQ;
+	//wire VRAM_WRITE_REQ; // D38_Q
+	//wire nVRAM_WRITE_DONE; // D28_nQ, D32A_OUT
+	//FDPCell D38(~WR_VRAM_RW, 1'b1, 1'b1, nVRAM_WRITE_DONE, VRAM_WRITE_REQ, nVRAM_WRITE_REQ);
+	//FDPCell D28(D112B_OUT, 1'b1, 1'b1, VRAM_WRITE_REQ, , nVRAM_WRITE_DONE);
+	wire VRAM_WRITE_REQ;
+	reg  VRAM_WRITE_DONE;
+	register D38(CLK, 1'b0, VRAM_WRITE_DONE, ~WR_VRAM_RW, 1'b1, VRAM_WRITE_REQ);
+	always @(posedge CLK) begin
+		reg VRAM_WRITE_ACK_d;
+		VRAM_WRITE_ACK_d <= VRAM_WRITE_ACK;
+		if (~VRAM_WRITE_REQ)
+			VRAM_WRITE_DONE <= 0;
+		else if (~VRAM_WRITE_ACK_d & VRAM_WRITE_ACK)
+			VRAM_WRITE_DONE <= 1;
+	end
+	assign nVRAM_WRITE_REQ = ~VRAM_WRITE_REQ;
 	// CPU write to REG_VRAMMOD
 	// H105 G105 F81 G123
-	FDS16bit H105(~WR_VRAM_MOD, M68K_DATA, REG_VRAMMOD);
-	
+	//FDS16bit H105(~WR_VRAM_MOD, M68K_DATA, REG_VRAMMOD);
+	register #(16) H105(CLK, 1'b0, 1'b0, ~WR_VRAM_MOD, M68K_DATA, REG_VRAMMOD);
+
 	// CPU write to REG_VRAMADDR
 	// F47 D87 A79 C123
-	FDS16bit F47(~WR_VRAM_ADDR, M68K_DATA, REG_VRAMADDR);
+	//FDS16bit F47(~WR_VRAM_ADDR, M68K_DATA, REG_VRAMADDR);
+	register #(16) F47(CLK, 1'b0, 1'b0, ~WR_VRAM_ADDR, M68K_DATA, REG_VRAMADDR);
 
 	// CPU write to REG_LSPCMODE
-	FDSCell E105(WR_LSPC_MODE, M68K_DATA[15:12], AA_SPEED[7:4]);
-	FDSCell C87(WR_LSPC_MODE, M68K_DATA[11:8], AA_SPEED[3:0]);
-	FDPCell E74(WR_LSPC_MODE, M68K_DATA[7], 1'b1, RESET, TIMER_MODE[2]);
-	FDRCell E61(WR_LSPC_MODE, M68K_DATA[6:3], RESET, {TIMER_MODE[1:0], TIMER_IRQ_EN, AA_DISABLE});
-	
+	//FDSCell E105(WR_LSPC_MODE, M68K_DATA[15:12], AA_SPEED[7:4]);
+	//FDSCell C87(WR_LSPC_MODE, M68K_DATA[11:8], AA_SPEED[3:0]);
+	//FDPCell E74(WR_LSPC_MODE, M68K_DATA[7], 1'b1, RESET, TIMER_MODE[2]);
+	//FDRCell E61(WR_LSPC_MODE, M68K_DATA[6:3], RESET, {TIMER_MODE[1:0], TIMER_IRQ_EN, AA_DISABLE});
+	register #(8) E105_C87(CLK, 1'b0, 1'b0, WR_LSPC_MODE, M68K_DATA[15:8], AA_SPEED);
+	register #(5) E74_E61(CLK, 1'b0, ~RESET, WR_LSPC_MODE, M68K_DATA[7:3], {TIMER_MODE, TIMER_IRQ_EN, AA_DISABLE});
 	// CPU write to REG_TIMERSTOP
-	FDPCell D34(WR_TIMER_STOP, M68K_DATA[0], RESETP, 1'b1, , TIMER_STOP);
+	//FDPCell D34(WR_TIMER_STOP, M68K_DATA[0], RESETP, 1'b1, , TIMER_STOP);
+	register D34(CLK, 1'b0, ~RESETP, WR_TIMER_STOP, M68K_DATA[0], TIMER_STOP);
 
 endmodule

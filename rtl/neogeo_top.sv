@@ -549,11 +549,14 @@ zmc ZMC(
 
 // Bankswitching for the PORT zone, do all games use a 1MB window ?
 // P_BANK stays at 0 for CD systems
-always @(posedge nPORTWEL or negedge nRESET)
+always @(posedge CLK_48M)
 begin
+	reg nPORTWEL_d;
+	nPORTWEL_d <= nPORTWEL;
+
 	if (!nRESET)
 		P_BANK <= 0;
-	else
+	else if (nPORTWEL & ~nPORTWEL_d)
 		if (!SYSTEM_CDx) P_BANK <= M68K_DATA[3:0];
 end
 
