@@ -201,7 +201,7 @@ wire [15:0] LO_ROM_DATA;
 
 reg         sp_req;       
 wire [26:0] CROM_ADDR;
-wire [63:0] CROM_DATA;
+wire [31:0] CROM_DATA;
 wire        CROM_RD;
 
 wire [18:0] Z80_ROM_ADDR;
@@ -222,11 +222,11 @@ wire        ADPCMB_DATA_READY;
 wire        sample_roma_req;
 wire        sample_roma_ack;
 wire [25:0] sample_roma_addr;
-wire [63:0] sample_roma_dout;
+wire [31:0] sample_roma_dout;
 wire        sample_romb_req;
 wire        sample_romb_ack;
 wire [25:0] sample_romb_addr;
-wire [63:0] sample_romb_dout;
+wire [31:0] sample_romb_dout;
 
 function [5:0] ceil_bit;
 	input [31:0] value;
@@ -411,11 +411,11 @@ always @(posedge CLK_48M) begin
 	ADPCMA_RD_OLD <= ADPCMA_RD;
 	ADPCMB_RD_OLD <= ADPCMB_RD;
 	if (!ADPCMA_RD_OLD & ADPCMA_RD) begin
-		if (ADPCMA_ADDR_LATCH[23:3] != {ADPCMA_BANK, ADPCMA_ADDR[19:3]}) sample_roma_req <= ~sample_roma_req;
+		if (ADPCMA_ADDR_LATCH[23:2] != {ADPCMA_BANK, ADPCMA_ADDR[19:2]}) sample_roma_req <= ~sample_roma_req;
 		ADPCMA_ADDR_LATCH <= {ADPCMA_BANK, ADPCMA_ADDR} & V1Mask;
 	end
 	if (!ADPCMB_RD_OLD & ADPCMB_RD) begin
-		if (ADPCMB_ADDR_LATCH[23:3] != ADPCMB_ADDR[23:3]) sample_romb_req <= ~sample_romb_req;
+		if (ADPCMB_ADDR_LATCH[23:2] != ADPCMB_ADDR[23:2]) sample_romb_req <= ~sample_romb_req;
 		ADPCMB_ADDR_LATCH <= ADPCMB_ADDR & V2Mask;
 	end
 end
@@ -426,29 +426,21 @@ assign ADPCMA_DATA_READY = sample_roma_req == sample_roma_ack;
 assign ADPCMB_DATA_READY = sample_romb_req == sample_romb_ack;
 
 always @(*) begin
-	case (ADPCMA_ADDR_LATCH[2:0])
+	case (ADPCMA_ADDR_LATCH[1:0])
 	3'd0: ADPCMA_DATA = sample_roma_dout[ 7: 0];
 	3'd1: ADPCMA_DATA = sample_roma_dout[15: 8];
 	3'd2: ADPCMA_DATA = sample_roma_dout[23:16];
 	3'd3: ADPCMA_DATA = sample_roma_dout[31:24];
-	3'd4: ADPCMA_DATA = sample_roma_dout[39:32];
-	3'd5: ADPCMA_DATA = sample_roma_dout[47:40];
-	3'd6: ADPCMA_DATA = sample_roma_dout[55:48];
-	3'd7: ADPCMA_DATA = sample_roma_dout[63:56];
 	default: ;
 	endcase
 end
 
 always @(*) begin
-	case (ADPCMB_ADDR_LATCH[2:0])
+	case (ADPCMB_ADDR_LATCH[1:0])
 	3'd0: ADPCMB_DATA = sample_romb_dout[ 7: 0];
 	3'd1: ADPCMB_DATA = sample_romb_dout[15: 8];
 	3'd2: ADPCMB_DATA = sample_romb_dout[23:16];
 	3'd3: ADPCMB_DATA = sample_romb_dout[31:24];
-	3'd4: ADPCMB_DATA = sample_romb_dout[39:32];
-	3'd5: ADPCMB_DATA = sample_romb_dout[47:40];
-	3'd6: ADPCMB_DATA = sample_romb_dout[55:48];
-	3'd7: ADPCMB_DATA = sample_romb_dout[63:56];
 	default: ;
 	endcase
 end
@@ -470,7 +462,7 @@ end
 // 1111 0xxx xxxx xxxx xxxx xxxx    Z80 Cart ROM
 // 1111 1xxx xxxx xxxx xxxx xxxx    SROM
 
-sdram_4w_cl3 #(96) sdram
+sdram_2w_cl2 #(96) sdram
 (
   .*,
   .init_n        ( pll_locked    ),
@@ -547,7 +539,7 @@ sdram_4w_cl3 #(96) sdram
 
   .sp_req        ( sp_req ),
   .sp_ack        (  ),
-  .sp_addr       ( CROM_ADDR[25:3] & CMask[25:3] ),
+  .sp_addr       ( CROM_ADDR[25:2] & CMask[25:2] ),
   .sp_q          ( CROM_DATA )
 );
 

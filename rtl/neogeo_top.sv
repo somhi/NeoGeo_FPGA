@@ -103,7 +103,7 @@ module neogeo_top
 	output        SFIX_RD,
 
 	output [26:0] CROM_ADDR,
-	input  [63:0] CROM_DATA,
+	input  [31:0] CROM_DATA,
 	output        CROM_RD,
 
 	output [18:0] Z80_ROM_ADDR,
@@ -202,13 +202,10 @@ wire n2610CS, n2610RD, n2610WR;
 
 // Graphics stuff
 wire [23:0] PBUS;
-//wire [7:0] LO_ROM_DATA;
 wire nPBUS_OUT_EN;
 
 wire [19:0] C_LATCH;
 reg   [3:0] C_LATCH_EXT;
-wire [63:0] CR_DOUBLE = CROM_DATA;
-//wire [26:0] CROM_ADDR;
 
 wire [1:0] FIX_BANK;
 wire [15:0] S_LATCH;
@@ -232,7 +229,7 @@ wire   VRAM_SPRMAP_CYCLE = VRAM_CYCLE == 2'b10;
 wire   VRAM_FIXMAP_CYCLE = VRAM_CYCLE == 2'b00;
 wire   VRAM_CPU_CYCLE    = VRAM_CYCLE == 2'b01;
 assign SPRMAP_RD = VRAM_SPRMAP_CYCLE | VRAM_FIXMAP_CYCLE; // the address is ready even in the fixmap read cycle
-
+assign LO_ROM_RD = VRAM_FIXMAP_CYCLE; // lo rom address is ready here
 wire [15:0] CPU_VRAM_ADDR;
 wire        SCB1_CS = CPU_VRAM_ADDR[15:12] < 4'd7;
 
@@ -533,8 +530,13 @@ memcard MEMCARD(
 	.sd_buff_din_memcard(memcard_buff_dout)
 );
 
-assign CROM_ADDR = {C_LATCH_EXT, C_LATCH, 3'b000}/* & CROM_MASK*/;
-assign CROM_RD = PCK1;
+/*
+// CA4's polarity depends on the tile's h-flip attribute
+// Normal: CA4 high, then low
+// Flipped: CA4 low, then high
+*/
+assign CROM_ADDR = {C_LATCH_EXT, C_LATCH, ~CA4, 2'b00}/* & CROM_MASK*/;
+assign CROM_RD = PCK1 | PCK2;
 
 zmc ZMC(
 	.nRESET(nRESET),
@@ -696,21 +698,7 @@ neo_c1 C1(
 	.SYSTEM_TYPE(SYSTEM_TYPE)
 );
 
-// This is used to split burst-read sprite gfx data in half at the right time
-reg LOAD_SR;
-reg CA4_REG;
-
-// CA4's polarity depends on the tile's h-flip attribute
-// Normal: CA4 high, then low
-// Flipped: CA4 low, then high
-always @(posedge CLK_48M) begin
-	LOAD_SR <= LOAD;
-	if (~LOAD_SR & LOAD) CA4_REG <= CA4;
-end
-
-// CR_DOUBLE: [8px left] [8px right]
-//         BP  A B C D    A B C D
-wire [31:0] CR = CA4_REG ? CR_DOUBLE[63:32] : CR_DOUBLE[31:0];
+wire [31:0] CR = CROM_DATA;
 
 neo_zmc2 ZMC2(
 	.CLK(CLK_48M),
@@ -852,7 +840,7 @@ lspc2_a2_sync	LSPC(
 	.SPRMAP_ADDR(SPRMAP_ADDR),
 	.VRAM_ADDR(CPU_VRAM_ADDR),
 	.VRAM_CYCLE(VRAM_CYCLE),
-	.LO_ROM_RD(LO_ROM_RD),
+	.LO_ROM_RD(),
 	.LO_ROM_ADDR(LO_ROM_ADDR)
 );
 
