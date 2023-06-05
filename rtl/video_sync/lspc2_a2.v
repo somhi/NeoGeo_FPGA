@@ -78,7 +78,6 @@ module lspc2_a2_sync(
 	output [14:0] SPRMAP_ADDR,
 	output [15:0] VRAM_ADDR,        // CPU access address
 	output  [1:0] VRAM_CYCLE,
-	output        LO_ROM_RD,
 	output [15:0] LO_ROM_ADDR
 );
 
@@ -133,7 +132,6 @@ module lspc2_a2_sync(
 	wire [19:0] SPR_TILE;
 	wire [7:0] YSHRINK;
 	wire [8:0] SPR_Y;
-	wire       SPR_Y_LATCHED;
 	wire [7:0] SPR_PAL;
 	wire [3:0] FIX_PAL;
 	wire [11:0] FIX_TILE;
@@ -638,7 +636,6 @@ module lspc2_a2_sync(
 
 	// **Gyurco** exposed to SDRAM controller
 	assign LO_ROM_ADDR = {YSHRINK, LO_LINE_MUX};
-	assign LO_ROM_RD = SPR_Y_LATCHED;
 
 	// Output mux
 	// C250 A238A A232 A234A
@@ -731,7 +728,7 @@ module lspc2_a2_sync(
 							VRAM_ADDR, VRAM_WRITE, REG_VRAMADDR[15], FLIP, nFLIP,
 							PIXELC, RASTERC, P50_CO, nCPU_WR_HIGH, HSHRINK, PIPE_C, VRAM_HIGH_READ,
 							ACTIVE_RD, R91_Q, R91_nQ, T140_Q, T58A_OUT, T73A_OUT, U129A_Q, T125A_OUT, T125A_OUT_RISE,
-							CLK_ACTIVE_RD, ACTIVE_RD_PRE8, SPR_Y, SPR_Y_LATCHED, YSHRINK, SPR_SIZE0, SPR_SIZE5, O159_QB,
+							CLK_ACTIVE_RD, ACTIVE_RD_PRE8, SPR_Y, YSHRINK, SPR_SIZE0, SPR_SIZE5, O159_QB,
 							FVRAM_ADDR, FVRAM_DATA_IN, FVRAM_DATA_OUT, CWE);
 	
 	autoanim AA(RASTERC[8], nRESETP, AA_SPEED, AA_COUNT);

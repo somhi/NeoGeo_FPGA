@@ -52,7 +52,6 @@ module fast_cycle_sync(
 	output CLK_ACTIVE_RD,
 	output ACTIVE_RD_PRE8,
 	output reg [8:0] SPR_Y,
-	output SPR_Y_LATCHED,
 	output reg [7:0] YSHRINK,
 	output reg SPR_SIZE0,
 	output reg SPR_SIZE5,
@@ -136,7 +135,6 @@ module fast_cycle_sync(
 	//FDSCell M269(N98_QC, F[11:8], SPR_Y[4:1]);
 	//FDSCell M233(N98_QC, {F[7:5], F[0]}, {SPR_Y[0], SPR_CHAIN, SPR_SIZE5, SPR_SIZE0});
 	always @(posedge CLK) if (N98_QC_RISE) {SPR_Y[8:0], SPR_CHAIN, SPR_SIZE5, SPR_SIZE0} <= {F[15:5], F[0]};
-	assign SPR_Y_LATCHED = N98_QD_RISE;
 
 	// Active list read
 	FDSCell J117(H125A_OUT, F[7:4], ACTIVE_RD_PRE[7:4]);
