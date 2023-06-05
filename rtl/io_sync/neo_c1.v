@@ -22,6 +22,7 @@
 // All address decoding was checked except BITW1, nCTRL1_ZONE, and nCTRL2_ZONE
 
 module neo_c1(
+	input CLK,
 	input [21:17] M68K_ADDR,
 	inout [15:8] M68K_DATA,
 	input A22Z, A23Z,
@@ -46,7 +47,7 @@ module neo_c1(
 	input [7:0] SDD_WR,
 	output [7:0] SDD_RD,
 	input nSDZ80R, nSDZ80W, nSDZ80CLR,
-	input CLK_68KCLK,
+	input CLK_EN_68K_P,
 	output nDTACK,
 	output nBITW0, nBITW1, nDIPRD0, nDIPRD1,
 	output nPAL_ZONE,
@@ -66,9 +67,9 @@ module neo_c1(
 	wire nSROM_ZONE;		// Internal
 	wire nSRAM_ZONE;		// Internal (external for PCB)
 	
-	c1_regs C1REGS(nICOM_ZONE, RW, M68K_DATA, SDD_RD, SDD_WR, nSDZ80R, nSDZ80W, nSDZ80CLR, nSDW);
+	c1_regs C1REGS(CLK, nICOM_ZONE, RW, M68K_DATA, SDD_RD, SDD_WR, nSDZ80R, nSDZ80W, nSDZ80CLR, nSDW);
 	
-	c1_wait C1WAIT(CLK_68KCLK, nAS, SYSTEM_TYPE[1], nROM_ZONE, nWRAM_ZONE, nPORT_ZONE, nCARD_ZONE, nSROM_ZONE,
+	c1_wait C1WAIT(CLK, CLK_EN_68K_P, nAS, SYSTEM_TYPE[1], nROM_ZONE, nWRAM_ZONE, nPORT_ZONE, nCARD_ZONE, nSROM_ZONE,
 					nROMWAIT, nPWAIT0, nPWAIT1, PDTACK, nDTACK);
 	
 	c1_inputs C1INPUTS(nCTRL1_ZONE, nCTRL2_ZONE, nSTATUSB_ZONE, M68K_DATA, P1_IN, P2_IN,

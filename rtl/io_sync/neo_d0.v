@@ -57,18 +57,22 @@ module neo_d0(
 	clocks_sync CLKS(CLK, CLK_EN_24M_P, CLK_EN_24M_N, nRESETP, CLK_24M, CLK_12M, CLK_68KCLK, CLK_68KCLKB, CLK_EN_68K_P, CLK_EN_68K_N, CLK_6MB, CLK_1HB, CLK_EN_12M, CLK_EN_12M_N, CLK_EN_6MB, CLK_EN_1HB);
 	
 	// Z80 controller part
-	z80ctrl Z80CTRL(SDA_L, SDA_H, nSDRD, nSDWR, nMREQ, nIORQ, nSDW, nRESET, nZ80NMI, nSDZ80R, nSDZ80W,
+	z80ctrl Z80CTRL(CLK, SDA_L, SDA_H, nSDRD, nSDWR, nMREQ, nIORQ, nSDW, nRESET, nZ80NMI, nSDZ80R, nSDZ80W,
 				nSDZ80CLR, nSDROM, nSDMRD, nSDMWR, SDRD0, SDRD1, n2610CS, n2610RD, n2610WR, nZRAMCS);
 	
 	assign {P2_OUT, P1_OUT} = nRESETP ? REG_OUT : 6'b000000;
 	assign BNK = nRESETP ? REG_BNK : 3'b000;
 
-	always @(negedge nBITWD0)
+	always @(posedge CLK)
 	begin
-		if (M68K_ADDR_A4)
-			REG_BNK <= M68K_DATA[2:0];
-		else
-			REG_OUT <= M68K_DATA[5:0];
+		reg nBITWD0_d;
+		nBITWD0_d <= nBITWD0;
+		if (!nBITWD0 & nBITWD0_d) begin
+			if (M68K_ADDR_A4)
+				REG_BNK <= M68K_DATA[2:0];
+			else
+				REG_OUT <= M68K_DATA[5:0];
+		end
 	end
 	
 endmodule

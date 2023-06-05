@@ -52,6 +52,7 @@ module neogeo_top
 	input   [9:0] P2_IN,
 	input         DBG_FIX_EN,
 	input         DBG_SPR_EN,
+	input  [63:0] RTC,
 
 	output reg [7:0] RED,
 	output reg [7:0] GREEN,
@@ -444,7 +445,7 @@ assign P2ROM_ADDR = (!cart_pchip) ? {P_BANK, M68K_ADDR[19:1], 1'b0} : 24'bZ;
 neo_pvc neo_pvc
 (
 	.nRESET(nRESET),
-	.CLK_24M(CLK_24M),
+	.CLK_48M(CLK_48M),
 
 	.ENABLE(cart_pchip == 2),
 
@@ -461,7 +462,7 @@ neo_pvc neo_pvc
 neo_sma neo_sma
 (
 	.nRESET(nRESET),
-	.CLK_24M(CLK_24M),
+	.CLK_48M(CLK_48M),
 
 	.TYPE(cart_pchip),
 
@@ -518,7 +519,7 @@ assign CARD_WE = (SYSTEM_CDx | (~nCARDWEN & CARDWENB)) & ~nCRDW;
 
 wire [15:0] memcard_buff_dout;
 memcard MEMCARD(
-	.CLK_24M(CLK_24M),
+	.CLK_48M(CLK_48M),
 	.SYSTEM_CDx(SYSTEM_CDx),
 	.CDA(CDA), .CDD(CDD),
 	.CARD_WE(CARD_WE),
@@ -539,6 +540,7 @@ assign CROM_ADDR = {C_LATCH_EXT, C_LATCH, ~CA4, 2'b00}/* & CROM_MASK*/;
 assign CROM_RD = PCK1 | PCK2;
 
 zmc ZMC(
+	.CLK(CLK_48M),
 	.nRESET(nRESET),
 	.nSDRD0(SDRD0),
 	.SDA_L(SDA[1:0]), .SDA_U(SDA[15:8]),
@@ -611,7 +613,7 @@ wire [15:0] COM_DOUT;
 
 com COM(
 	.nRESET(nRESET),
-	.CLK_24M(CLK_24M),
+	.CLK_48M(CLK_48M),
 	.nPORTOEL(nPORTOEL), .nPORTOEU(nPORTOEU), .nPORTWEL(nPORTWEL),
 	.M68K_DIN(COM_DOUT)
 );
@@ -641,6 +643,7 @@ neo_e0 E0(
 );
 
 neo_f0 F0(
+	.CLK(CLK_48M),
 	.nRESET(nRESET),
 	.nDIPRD0(nDIPRD0), .nDIPRD1(nDIPRD1),
 	.nBITW0(nBITW0), .nBITWD0(nBITWD0),
@@ -653,10 +656,11 @@ neo_f0 F0(
 	.SYSTEM_TYPE(SYSTEM_MVS)
 );
 
-uPD4990 RTC(
-	.rtc(rtc),
+uPD4990 RTCC(
+	.rtc(RTC),
 	.nRESET(nRESET),
-	.CLK(CLK_12M),
+	.CLK(CLK_48M),
+	.CLK_EN_12M(CLK_EN_12M),
 	.DATA_CLK(RTC_CLK), .STROBE(RTC_STROBE),
 	.DATA_IN(RTC_DIN), .DATA_OUT(RTC_DOUT),
 	.CS(1'b1), .OE(1'b1),
@@ -670,6 +674,7 @@ neo_g0 G0(
 );
 
 neo_c1 C1(
+	.CLK(CLK_48M),
 	.M68K_ADDR(M68K_ADDR[21:17]),
 	.M68K_DATA(M68K_DATA[15:8]), .A22Z(A22Z), .A23Z(A23Z),
 	.nLDS(nLDS), .nUDS(nUDS), .RW(M68K_RW), .nAS(nAS),
@@ -690,7 +695,7 @@ neo_c1 C1(
 	.SDD_WR(SDD_OUT),
 	.SDD_RD(SDD_RD_C1),
 	.nSDZ80R(nSDZ80R), .nSDZ80W(nSDZ80W), .nSDZ80CLR(nSDZ80CLR),
-	.CLK_68KCLK(CLK_68KCLK),
+	.CLK_EN_68K_P(CLK_EN_68K_P),
 	.nDTACK(nDTACK),
 	.nBITW0(nBITW0), .nBITW1(nBITW1),
 	.nDIPRD0(nDIPRD0), .nDIPRD1(nDIPRD1),
@@ -882,10 +887,11 @@ wire [7:0] B8 = B6[6] ? 8'd0 : {B6[5:0],  B6[4:3]};
 
 always @(posedge CLK_48M) begin
 	if (CLK_EN_6MB) begin
-		RED   <=  ~SHADOW ? R8 : {1'b0, R8[7:1]};
+		RED   <= ~SHADOW ? R8 : {1'b0, R8[7:1]};
 		GREEN <= ~SHADOW ? G8 : {1'b0, G8[7:1]};
 		BLUE  <= ~SHADOW ? B8 : {1'b0, B8[7:1]};
 	end
 end
+assign CE_PIXEL = CLK_EN_6MB;
 
 endmodule

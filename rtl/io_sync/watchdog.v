@@ -44,15 +44,16 @@ module watchdog(
 	// MAME says 00110001xxxxxxxxxxxxxxx1 but NEO-B1 doesn't have A16
 	wire WDRESET = &{nRST, ~|{nLDS, RW, A23I, A22I}, M68K_ADDR_U[21:20], ~|{M68K_ADDR_U[19:17]}};
 	
-	always @(posedge CLK or posedge WDRESET or negedge nRST)
+	always @(posedge CLK)
 	begin
 		reg WDCLK_D;
+		WDCLK_D <= WDCLK;
+
 		if (WDRESET)
 			WDCNT <= 4'b0000;
 		else if (!nRST)
 			WDCNT <= 4'b1000;
 		else begin
-			WDCLK_D <= WDCLK;
 			if (~WDCLK_D & WDCLK)
 				WDCNT <= WDCNT + 1'b1;
 		end

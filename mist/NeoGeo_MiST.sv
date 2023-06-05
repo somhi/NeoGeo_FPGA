@@ -88,6 +88,7 @@ wire  [1:0] buttons;
 wire  [1:0] switches;
 wire [15:0] joystick_0;
 wire [15:0] joystick_1;
+wire [63:0] rtc;
 wire        scandoublerD;
 wire        ypbpr;
 wire        no_csync;
@@ -110,6 +111,7 @@ user_io(
 	.scandoubler_disable (scandoublerD	  ),
 	.ypbpr          (ypbpr          ),
 	.no_csync       (no_csync       ),
+	.rtc            (rtc            ),
 	.core_mod       (core_mod       ),
 	.key_strobe     (key_strobe     ),
 	.key_pressed    (key_pressed    ),
@@ -568,6 +570,7 @@ neogeo_top neogeo_top (
 	.DIPSW         ( dipsw ),
 	.DBG_FIX_EN    ( fix_en ),
 	.DBG_SPR_EN    ( spr_en ),
+	.RTC           ( rtc ),
 
 	.RED           ( R ),
 	.GREEN         ( G ),
