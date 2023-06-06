@@ -255,6 +255,7 @@ reg  [31:0] CMask, V1Mask, V2Mask;
 reg   [2:0] region;
 reg  [25:0] offset;
 reg  [25:0] region_size;
+reg         pcm_merged;
 
 always @(*) begin
 	case (region)
@@ -300,9 +301,9 @@ always @(posedge CLK_48M) begin
 
 				if (&ioctl_addr[11:0]) begin
 					written <= 2;
+					pcm_merged <= 0;
 					if (V2Size == 0) begin // Hack? Neobuilder merges ADPCMA+ADPCMB
-						V1Size <= V1Size >> 1;
-						V2Size <= V1Size >> 1;
+						pcm_merged <= 1;
 					end
 				end
 			end else begin
@@ -418,12 +419,12 @@ always @(posedge CLK_48M) begin
 	end
 	if (!ADPCMB_RD_OLD & ADPCMB_RD) begin
 		if (ADPCMB_ADDR_LATCH[23:2] != ADPCMB_ADDR[23:2]) sample_romb_req <= ~sample_romb_req;
-		ADPCMB_ADDR_LATCH <= ADPCMB_ADDR & V2Mask;
+		ADPCMB_ADDR_LATCH <= ADPCMB_ADDR & (pcm_merged ? V1Mask : V2Mask);
 	end
 end
 
 assign sample_roma_addr = CSize + ADPCMA_ADDR_LATCH;
-assign sample_romb_addr = CSize + V1Size + ADPCMB_ADDR_LATCH;
+assign sample_romb_addr = CSize + ({32{~pcm_merged}} & V1Size) + ADPCMB_ADDR_LATCH;
 assign ADPCMA_DATA_READY = sample_roma_req == sample_roma_ack;
 assign ADPCMB_DATA_READY = sample_romb_req == sample_romb_ack;
 
