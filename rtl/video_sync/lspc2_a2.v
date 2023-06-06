@@ -205,8 +205,7 @@ module lspc2_a2_sync(
 			nEVEN_ODD <= ~U56A_OUT;
 		end
 	end
-
-
+	wire CK_HSHRINK_EN = CLK_EN_24M_P & CK_HSHRINK_REG & LSPC_12M;
 	
 	// CPU VRAM address update select
 	// $3C0000 REG_VRAMADDR	0 (update with written value)
@@ -739,7 +738,7 @@ module lspc2_a2_sync(
 	autoanim AA(RASTERC[8], nRESETP, AA_SPEED, AA_COUNT);
 	
 	wire HSHRINK_OUT_A, HSHRINK_OUT_B;
-	hshrink HSH(HSHRINK, CK_HSHRINK_REG, LD_HSHRINK_REG, HSHRINK_OUT_A, HSHRINK_OUT_B);
+	hshrink_sync HSH_SYNC(CLK, HSHRINK, CK_HSHRINK_EN, LD_HSHRINK_REG, HSHRINK_OUT_A, HSHRINK_OUT_B);
 	wire nHSHRINK_OUT_A = ~HSHRINK_OUT_A;
 	wire nHSHRINK_OUT_B = ~HSHRINK_OUT_B;
 	

@@ -8,6 +8,7 @@ HDL_FILES = \
 	../rtl/video${SYNC}/slow_cycle.v \
 	../rtl/video/slow_cycle.v \
 	../rtl/video${SYNC}/hshrink.v \
+	../rtl/video/hshrink.v \
 	../rtl/video${SYNC}/irq.v \
 	../rtl/video/irq.v \
 	../rtl/video${SYNC}/neo_b1.v \
