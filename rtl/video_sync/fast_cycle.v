@@ -72,13 +72,13 @@ module fast_cycle_sync(
 	wire [15:0] F_OUT_MUX;
 	reg  [7:0] ACTIVE_RD_PRE;
 	wire [3:0] J127_Q;
-	wire [3:0] T102_Q;
+	reg  [3:0] T102_Q;
 	wire [7:0] PARSE_LOOKAHEAD;
 	wire [8:0] PARSE_ADD_Y;
 	wire [5:0] PARSE_ADD_SIZE;
 	reg  [3:0] XSHRINK; //O141_Q
 	reg  [7:0] ACTIVE_RD_ADDR;	// Bit 7 unused
-	wire [7:0] ACTIVE_WR_ADDR;	// Bit 7 unused
+	reg  [7:0] ACTIVE_WR_ADDR;	// Bit 7 unused
 	wire [10:0] A_TOP;
 	wire [10:0] B_TOP;
 	wire [10:0] C_TOP;
@@ -104,10 +104,10 @@ module fast_cycle_sync(
 	reg  N98_QD;
 	wire N98_QD_DELAYED;
 	reg  O98_Q;
-	wire nPARSING_DONE;
-	wire S111_Q;
-	wire S111_nQ;
-	wire WR_ACTIVE;
+	reg  nPARSING_DONE;
+	reg  S111_Q;
+	reg  S111_nQ;
+	reg  WR_ACTIVE;
 	reg  T129A_nQ;
 	reg  T66_Q;
 	reg  S67_nQ;
@@ -173,7 +173,7 @@ module fast_cycle_sync(
 		{J231_Q, J87_G152_Q} <= PARSE_INDEX;
 	
 	// OK
-
+/*
 	always @(posedge O109A_OUT or negedge nPARSING_DONE)
 	begin
 		if (!nPARSING_DONE)
@@ -181,11 +181,11 @@ module fast_cycle_sync(
 		else
 			{J194_Q, J102_E175_Q} <= {J231_Q, J87_G152_Q};
 	end
-/*
+*/
 	always @(posedge CLK, negedge nPARSING_DONE)
 		if (!nPARSING_DONE) {J194_Q, J102_E175_Q} <= 9'd0;
 		else if (O109A_OUT_RISE) {J194_Q, J102_E175_Q} <= {J231_Q, J87_G152_Q};
-*/
+
 	//wire O112B_OUT = O109A_OUT;		// 2x inverter
 	/*FDSCell G152(PARSE_INDEX_INC_CLK, PARSE_INDEX[3:0], G152_Q);
 	//assign #5 G152_Q_DELAYED = G152_Q;	// 4x BD3
@@ -245,10 +245,10 @@ module fast_cycle_sync(
 	end*/
 	wire I145_OUT = ~&{PARSE_INDEX[6:1], PARSE_INDEX[8]};
 	wire R113A_OUT = I145_OUT & nPARSING_DONE;
-	FDPCell R109(O109A_OUT, R113A_OUT, nNEW_LINE, 1'b1, nPARSING_DONE);
-	//always @(posedge CLK, negedge nNEW_LINE)
-	//	if (!nNEW_LINE) nPARSING_DONE <= 0;
-	//	else if (O109A_OUT_RISE) nPARSING_DONE <= R113A_OUT;
+	//FDPCell R109(O109A_OUT, R113A_OUT, nNEW_LINE, 1'b1, nPARSING_DONE);
+	always @(posedge CLK, negedge nNEW_LINE)
+		if (!nNEW_LINE) nPARSING_DONE <= 1;
+		else if (O109A_OUT_RISE) nPARSING_DONE <= R113A_OUT;
 	
 	// Active list full detection
 	/*reg S111_Q;
@@ -264,24 +264,24 @@ module fast_cycle_sync(
 		end
 	end*/
 	wire S109B_OUT = S111_Q & nACTIVE_FULL;
-	FDPCell S111(O109A_OUT, S109B_OUT, nNEW_LINE, 1'b1, S111_Q, S111_nQ);
-/*
+	//FDPCell S111(O109A_OUT, S109B_OUT, nNEW_LINE, 1'b1, S111_Q, S111_nQ);
+
 	always @(posedge CLK, negedge nNEW_LINE)
-		if (!nNEW_LINE) {S111_Q, S111_nQ} <= 2'b01;
+		if (!nNEW_LINE) {S111_Q, S111_nQ} <= 2'b10;
 		else if (O109A_OUT_RISE) {S111_Q, S111_nQ} <= {S109B_OUT, ~S109B_OUT};
-*/
+
 	wire S109A_OUT = S111_Q & nNEW_LINE;
 	
 	// Write to fast VRAM enable
 	wire T95A_OUT = IS_ACTIVE & T102_Q[0];
 	wire R107A_OUT = nPARSING_DONE | S111_nQ;
-	FDPCell R103(O109A_OUT, T95A_OUT, R107A_OUT, S109A_OUT, WR_ACTIVE);
-/*
+	//FDPCell R103(O109A_OUT, T95A_OUT, R107A_OUT, S109A_OUT, WR_ACTIVE);
+
 	always @(posedge CLK, negedge R107A_OUT, negedge S109A_OUT)
 		if (!R107A_OUT) WR_ACTIVE <= 1;
 		else if (!S109A_OUT) WR_ACTIVE <= 0;
 		else if (O109A_OUT_RISE) WR_ACTIVE <= T95A_OUT;
-*/
+
 
 	//FD2 T129A(CLK_24M, T126B_OUT, , T129A_nQ);
 	always @(posedge CLK) if (CLK_EN_24M_N) T129A_nQ <= ~T126B_OUT;
@@ -310,24 +310,30 @@ module fast_cycle_sync(
 	//BD3 S105(VRAM_HIGH_ADDR_SB, S105_OUT);
 	always @(posedge CLK/*_24M*/)
 		S105_OUT <= VRAM_HIGH_ADDR_SB;	// TESTING - ok, solves issue
-	FDRCell T102(O109A_OUT, {1'b0, T102_Q[1], T102_Q[0], S105_OUT}, nNEW_LINE, T102_Q);
+	//FDRCell T102(O109A_OUT, {1'b0, T102_Q[1], T102_Q[0], S105_OUT}, nNEW_LINE, T102_Q);
+	always @(posedge CLK, negedge nNEW_LINE)
+		if (!nNEW_LINE)
+			T102_Q <= 0;
+		else if (O109A_OUT_RISE)
+			T102_Q <= {1'b0, T102_Q[1], T102_Q[0], S105_OUT};
+
 	wire T94_OUT = ~&{T102_Q[1:0], O102B_OUT};
 	wire T92_OUT = ~&{~T102_Q[2], ~T102_Q[1], T102_Q[0], VRAM_HIGH_ADDR_SB};
 	assign T90A_OUT = ~&{T94_OUT, T92_OUT};
 	
-	/*reg [6:0] ACTIVE_WR_ADDR;
 	always @(posedge O110B_OUT or negedge nNEW_LINE)
 	begin
 		if (!nNEW_LINE)
-			ACTIVE_WR_ADDR <= 7'd0;
+			ACTIVE_WR_ADDR <= 0;
 		else
 			ACTIVE_WR_ADDR <= ACTIVE_WR_ADDR + 1'd1;
-	end*/
+	end
+	/*
 	C43 H198(O110B_OUT, 4'b0000, 1'b1, 1'b1, 1'b1, nNEW_LINE, ACTIVE_WR_ADDR[3:0], H198_CO);
 	// Used for test mode
 	wire H222A_OUT = H198_CO | 1'b0;
 	C43 I189(O110B_OUT, 4'b0000, 1'b1, 1'b1, H222A_OUT, nNEW_LINE, ACTIVE_WR_ADDR[7:4]);
-	
+	*/
 	wire O110B_OUT = O109A_OUT | VRAM_HIGH_ADDR_SB;
 	wire nACTIVE_FULL = ~&{ACTIVE_WR_ADDR[6:5]};	// J100B
 	
