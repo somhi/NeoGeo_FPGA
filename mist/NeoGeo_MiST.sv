@@ -124,7 +124,7 @@ user_io(
 wire        ioctl_downl;
 wire  [7:0] ioctl_index;
 wire        ioctl_wr;
-wire [24:0] ioctl_addr;
+wire [26:0] ioctl_addr;
 wire  [7:0] ioctl_dout;
 
 data_io #(.ROM_DIRECT_UPLOAD(1'b1)) data_io(
@@ -277,7 +277,7 @@ always @(posedge CLK_48M) begin
 			written <= 0;
 		end
 		if (cart_rom_write) begin
-			if (ioctl_addr[24:12] == 0) begin
+			if (ioctl_addr[26:12] == 0) begin
 				/*
 				Header
 				struct NeoFile
