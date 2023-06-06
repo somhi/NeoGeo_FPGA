@@ -4,6 +4,8 @@
 #include <iomanip>
 #include <verilated.h>
 #include "Vlspc_tb.h"
+#include "Vlspc_tb_lspc_tb.h"
+#include "Vlspc_tb_lspc2_a2_sync.h"
 #include "verilated_vcd_c.h"
 
 
@@ -258,6 +260,7 @@ int main(int argc, char **argv) {
 		if (tb->VSYNC && !vsync_old) {
 			frame++;
 			printf("Frame: %d\n", frame);
+			tb->lspc_tb->LSPC_sync->AA_COUNT = 7;
 		}
 		if (frame == 1) {
 			if (!tb->VSYNC) rgb = 0xaaaaaaaa;

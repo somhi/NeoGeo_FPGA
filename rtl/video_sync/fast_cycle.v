@@ -23,6 +23,8 @@
 module fast_cycle_sync(
 	input CLK,
 	input CLK_24M,
+	input CLK_EN_24M_P,
+	input CLK_EN_24M_N,
 	input LSPC_EN_12M,
 	input LSPC_EN_6M,
 	input LSPC_EN_3M,
@@ -36,11 +38,11 @@ module fast_cycle_sync(
 	input [8:0] PIXELC,
 	input [8:0] RASTERC,
 	input P50_CO,
-	output nCPU_WR_HIGH,
+	output reg nCPU_WR_HIGH,
 	output [3:0] HSHRINK,
 	output [13:0] PIPE_C,
-	output [15:0] VRAM_HIGH_READ,
-	output [7:0] ACTIVE_RD,
+	output reg [15:0] VRAM_HIGH_READ,
+	output reg [7:0] ACTIVE_RD,
 	output reg R91_Q,
 	output reg R91_nQ,
 	input T140_Q,
@@ -49,8 +51,8 @@ module fast_cycle_sync(
 	input U129A_Q,
 	input T125A_OUT,
 	input T125A_OUT_RISE,
-	output CLK_ACTIVE_RD,
-	output ACTIVE_RD_PRE8,
+	output CLK_ACTIVE_RD_EN,
+	output reg ACTIVE_RD_PRE8,
 	output reg [8:0] SPR_Y,
 	output reg [7:0] YSHRINK,
 	output reg SPR_SIZE0,
@@ -68,14 +70,14 @@ module fast_cycle_sync(
 	reg  [8:0] PARSE_Y;
 	reg  [5:0] PARSE_SIZE;
 	wire [15:0] F_OUT_MUX;
-	wire [7:0] ACTIVE_RD_PRE;
+	reg  [7:0] ACTIVE_RD_PRE;
 	wire [3:0] J127_Q;
 	wire [3:0] T102_Q;
 	wire [7:0] PARSE_LOOKAHEAD;
 	wire [8:0] PARSE_ADD_Y;
 	wire [5:0] PARSE_ADD_SIZE;
-	reg  [3:0] O141_Q;
-	wire [7:0] ACTIVE_RD_ADDR;	// Bit 7 unused
+	reg  [3:0] XSHRINK; //O141_Q
+	reg  [7:0] ACTIVE_RD_ADDR;	// Bit 7 unused
 	wire [7:0] ACTIVE_WR_ADDR;	// Bit 7 unused
 	wire [10:0] A_TOP;
 	wire [10:0] B_TOP;
@@ -106,12 +108,12 @@ module fast_cycle_sync(
 	wire S111_Q;
 	wire S111_nQ;
 	wire WR_ACTIVE;
-	wire T129A_nQ;
+	reg  T129A_nQ;
 	reg  T66_Q;
 	reg  S67_nQ;
 	wire S71A_OUT;
 	reg  S74_Q;
-	wire T148_Q;
+	reg  T148_Q;
 	wire H198_CO;
 	reg  N98_QA;
 	wire I151_CO;
@@ -123,7 +125,8 @@ module fast_cycle_sync(
 	// CPU read
 	// L251 L269 L233 K249
 	reg  CLK_CPU_READ_HIGH /* synthesis keep */;
-	FDS16bit L251(~CLK_CPU_READ_HIGH, F, VRAM_HIGH_READ);
+	//FDS16bit L251(~CLK_CPU_READ_HIGH, F, VRAM_HIGH_READ);
+	always @(posedge CLK) if (CLK_CPU_READ_HIGH_FALL) VRAM_HIGH_READ <= F;
 
 	// Y parsing read
 	// N214 M214 M178 L190
@@ -137,17 +140,23 @@ module fast_cycle_sync(
 	always @(posedge CLK) if (N98_QC_RISE) {SPR_Y[8:0], SPR_CHAIN, SPR_SIZE5, SPR_SIZE0} <= {F[15:5], F[0]};
 
 	// Active list read
-	FDSCell J117(H125A_OUT, F[7:4], ACTIVE_RD_PRE[7:4]);
-	FDSCell J178(H125A_OUT, F[3:0], ACTIVE_RD_PRE[3:0]);
+	//FDSCell J117(H125A_OUT, F[7:4], ACTIVE_RD_PRE[7:4]);
+	//FDSCell J178(H125A_OUT, F[3:0], ACTIVE_RD_PRE[3:0]);
 	// Next step
-	FDSCell I32(CLK_ACTIVE_RD, ACTIVE_RD_PRE[7:4], ACTIVE_RD[7:4]);
-	FDSCell H165(CLK_ACTIVE_RD, ACTIVE_RD_PRE[3:0], ACTIVE_RD[3:0]);
+	//FDSCell I32(CLK_ACTIVE_RD, ACTIVE_RD_PRE[7:4], ACTIVE_RD[7:4]);
+	//FDSCell H165(CLK_ACTIVE_RD, ACTIVE_RD_PRE[3:0], ACTIVE_RD[3:0]);
+	always @(posedge CLK)
+		if (CLK_ACTIVE_RD_EN) begin
+			ACTIVE_RD_PRE[7:0] <= F[7:0];
+			ACTIVE_RD_PRE8 <= F[8];
+			ACTIVE_RD[7:0] <= ACTIVE_RD_PRE[7:0];
+		end
 	
 	// Shrink read
 	//FDSCell O141(N98_QB, F[11:8], O141_Q);
 	//FDSCell O123(N98_QB, F[7:4], YSHRINK[7:4]);
 	//FDSCell K178(N98_QB, F[3:0], YSHRINK[3:0]);
-	always @(posedge CLK) if (N98_QB_RISE) {O141_Q, YSHRINK} <= F[11:0];
+	always @(posedge CLK) if (N98_QB_RISE) {XSHRINK, YSHRINK} <= F[11:0];
 
 	// Data output selectors
 	// O171B O171A O173B O173A
@@ -208,16 +217,17 @@ module fast_cycle_sync(
 		if (!RESETP) {O98_Q, CLK_CPU_READ_HIGH} <= 2'b01;
 		else if (T125A_OUT_RISE) {O98_Q, CLK_CPU_READ_HIGH} <= {N98_QD_DELAYED, ~N98_QD_DELAYED};
 	wire CLK_CPU_READ_HIGH_RISE = ~CLK_CPU_READ_HIGH & ~N98_QD_DELAYED & T125A_OUT_RISE;
+	wire CLK_CPU_READ_HIGH_FALL =  CLK_CPU_READ_HIGH &  N98_QD_DELAYED & T125A_OUT_RISE;
 
-	FDPCell N93(N98_QD, F58A_OUT, CLK_CPU_READ_HIGH, 1'b1, nCPU_WR_HIGH);
-	//always @(posedge CLK)
-	//	if (~CLK_CPU_READ_HIGH) nCPU_WR_HIGH <= 1;
-	//	else if (T125A_OUT_RISE & !N98_QD & N98_QC) nCPU_WR_HIGH <= F58A_OUT;
+	//FDPCell N93(N98_QD, F58A_OUT, CLK_CPU_READ_HIGH, 1'b1, nCPU_WR_HIGH);
+	always @(posedge CLK)
+		if (~CLK_CPU_READ_HIGH) nCPU_WR_HIGH <= 1;
+		else if (T125A_OUT_RISE & !N98_QD & N98_QC) nCPU_WR_HIGH <= F58A_OUT;
 
 	
 	wire F58A_OUT = ~REG_VRAMADDR_MSB | nVRAM_WRITE_REQ;
-	FDM I148(H125A_OUT, F[8], ACTIVE_RD_PRE8);
-	wire H125A_OUT = CLK_ACTIVE_RD;
+	//FDM I148(H125A_OUT, F[8], ACTIVE_RD_PRE8);
+	//wire H125A_OUT = CLK_ACTIVE_RD;
 	
 	
 	// Parsing end detection
@@ -273,7 +283,8 @@ module fast_cycle_sync(
 		else if (O109A_OUT_RISE) WR_ACTIVE <= T95A_OUT;
 */
 
-	FD2 T129A(CLK_24M, T126B_OUT, , T129A_nQ);
+	//FD2 T129A(CLK_24M, T126B_OUT, , T129A_nQ);
+	always @(posedge CLK) if (CLK_EN_24M_N) T129A_nQ <= ~T126B_OUT;
 	wire T126B_OUT = ~&{T66_Q, T140_Q};
 	//FDM T66(LSPC_12M, T58A_OUT, T66_Q);
 	always @(posedge CLK) if (LSPC_EN_12M) T66_Q <= T58A_OUT;
@@ -286,9 +297,10 @@ module fast_cycle_sync(
 	//FDM S74(LSPC_6M, S71A_OUT, S74_Q);
 	always @(posedge CLK) if (LSPC_EN_6M) S74_Q <= S71A_OUT;
 	// S107A Used for test mode
-	wire nNEW_LINE = 1'b1 & S74_Q;
+	wire nNEW_LINE = 1'b1 & S74_Q /* synthesis keep */;
 	
-	FDM T148(CLK_24M, T128B_OUT, T148_Q);
+	//FDM T148(CLK_24M, T128B_OUT, T148_Q);
+	always @(posedge CLK) if (CLK_EN_24M_P) T148_Q <= T128B_OUT;
 	wire T128B_OUT = ~&{T73A_OUT, U129A_Q};
 	
 	// T181A
@@ -296,7 +308,7 @@ module fast_cycle_sync(
 	
 	wire M176A_OUT = PARSE_MATCH | PARSE_SIZE[5];
 	//BD3 S105(VRAM_HIGH_ADDR_SB, S105_OUT);
-	always @(posedge CLK_24M)
+	always @(posedge CLK/*_24M*/)
 		S105_OUT <= VRAM_HIGH_ADDR_SB;	// TESTING - ok, solves issue
 	FDRCell T102(O109A_OUT, {1'b0, T102_Q[1], T102_Q[0], S105_OUT}, nNEW_LINE, T102_Q);
 	wire T94_OUT = ~&{T102_Q[1:0], O102B_OUT};
@@ -324,7 +336,8 @@ module fast_cycle_sync(
 	always @(posedge CLK)
 		if (!RESETP) {N98_QD, N98_QC, N98_QB, N98_QA} <= 0;
 		else if (T125A_OUT_RISE) {N98_QD, N98_QC, N98_QB, N98_QA} <= {N98_QC, N98_QB, N98_QA, R91_nQ};
-	assign CLK_ACTIVE_RD = ~K131B_OUT;
+	//assign CLK_ACTIVE_RD = ~K131B_OUT;
+	assign CLK_ACTIVE_RD_EN = T125A_OUT_RISE & ~N98_QA & R91_nQ;
 
 	wire N98_QB_RISE = T125A_OUT_RISE & !N98_QB & N98_QA;
 	wire N98_QC_RISE = T125A_OUT_RISE & !N98_QC & N98_QB;
@@ -382,24 +395,22 @@ module fast_cycle_sync(
 	wire H293B_OUT = nFLIP;
 	wire J36_OUT = N98_QB ^ N98_QC;
 	
-	
 	// Active list read counter
-	/*reg [6:0] ACTIVE_RD_ADDR;
-	always @(posedge CLK_ACTIVE_RD or negedge nRELOAD_RD_ACTIVE)
-	begin
-		if (!nRELOAD_RD_ACTIVE)
-			ACTIVE_RD_ADDR <= 7'd0;
-		else
-			ACTIVE_RD_ADDR <= ACTIVE_RD_ADDR + 1'd1;
-	end*/
 	
 	assign #1 P39A_OUT = ~PIXELC[8];
 	//always @(posedge CLK_24M)	// TESTING
 		//P39A_OUT <= ~PIXELC[8];
 	wire nRELOAD_RD_ACTIVE = ~&{PIXELC[6], P50_CO, P39A_OUT};	// O55A
-	C43 I151(CLK_ACTIVE_RD, 4'b0000, nRELOAD_RD_ACTIVE, 1'b1, 1'b1, 1'b1, ACTIVE_RD_ADDR[3:0], I151_CO);
-	wire J176A_OUT = I151_CO | 1'b0;	// Used for test mode
-	C43 J151(CLK_ACTIVE_RD, 4'b0000, nRELOAD_RD_ACTIVE, 1'b1, J176A_OUT, 1'b1, ACTIVE_RD_ADDR[7:4]);
+	//C43 I151(CLK_ACTIVE_RD, 4'b0000, nRELOAD_RD_ACTIVE, 1'b1, 1'b1, 1'b1, ACTIVE_RD_ADDR[3:0], I151_CO);
+	//wire J176A_OUT = I151_CO | 1'b0;	// Used for test mode
+	//C43 J151(CLK_ACTIVE_RD, 4'b0000, nRELOAD_RD_ACTIVE, 1'b1, J176A_OUT, 1'b1, ACTIVE_RD_ADDR[7:4]);
+	always @(posedge CLK)
+		if (CLK_ACTIVE_RD_EN) begin
+			if (!nRELOAD_RD_ACTIVE)
+				ACTIVE_RD_ADDR <= 0;
+			else
+				ACTIVE_RD_ADDR <= ACTIVE_RD_ADDR + 1'd1;
+		end
 	
 	
 	// OK
@@ -441,7 +452,7 @@ module fast_cycle_sync(
 	//always @(posedge N98_QD)
 	//	SR_SPR_PARAMS <= {SR_SPR_PARAMS[27:0], {SPR_CHAIN, O141_Q, F[15:7]}};
 	always @(posedge CLK)
-		if (N98_QD_RISE) SR_SPR_PARAMS <= {SR_SPR_PARAMS[27:0], {SPR_CHAIN, O141_Q, F[15:7]}};
+		if (N98_QD_RISE) SR_SPR_PARAMS <= {SR_SPR_PARAMS[27:0], {SPR_CHAIN, XSHRINK, F[15:7]}};
 
 	assign O159_QB = SR_SPR_PARAMS[13];
 	assign HSHRINK = SR_SPR_PARAMS[40:37];
