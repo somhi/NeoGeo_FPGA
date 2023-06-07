@@ -423,11 +423,14 @@ always @(posedge clk) begin
 		if(t == STATE_CAS0 && (we_latch[0] || oe_latch[0])) begin
 			sd_cmd <= we_latch[0]?CMD_WRITE:CMD_READ;
 			{ SDRAM_DQMH, SDRAM_DQML } <= ~ds[0];
+			// early ack for nDTACK/nWAIT
+			if (port[0] == PORT_CPU1_ROM) cpu1_rom_valid <= 1;
+			if (port[0] == PORT_CPU1_RAM) cpu1_ram_valid <= 1;
+			if (port[0] == PORT_CPU2_ROM) cpu2_rom_valid <= 1;
 			if (we_latch[0]) begin
 				SDRAM_DQ <= din_latch[0];
 				case(port[0])
 					PORT_REQ: port1_ack <= port1_req;
-					PORT_CPU1_RAM: cpu1_ram_valid <= 1;
 					PORT_VRAM: begin
 						vram_ack <= vram_req;
 						vram_q2 <= din_latch[0];
@@ -459,9 +462,9 @@ always @(posedge clk) begin
 		if(t == STATE_READ0 && oe_latch[0]) begin
 			case(port[0])
 				PORT_REQ:  begin port1_q <= sd_din; port1_ack <= port1_req; end
-				PORT_CPU1_ROM: begin cpu1_rom_q <= sd_din; cpu1_rom_valid <= 1; end
-				PORT_CPU1_RAM: begin cpu1_ram_q <= sd_din; cpu1_ram_valid <= 1; end
-				PORT_CPU2_ROM: begin cpu2_rom_q <= sd_din; cpu2_rom_valid <= 1; end
+				PORT_CPU1_ROM: begin cpu1_rom_q <= sd_din; end
+				PORT_CPU1_RAM: begin cpu1_ram_q <= sd_din; end
+				PORT_CPU2_ROM: begin cpu2_rom_q <= sd_din; end
 				PORT_SFIX: begin sfix_q[15:0] <= sd_din; sfix_ack <= sfix_req; end
 				PORT_VRAM: if (vram_sel_latch) vram_q2 <= sd_din; else vram_q1[15:0] <= sd_din;
 				PORT_LOROM: begin lo_rom_q <= sd_din; lo_rom_ack <= lo_rom_req; end
