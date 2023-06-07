@@ -644,7 +644,7 @@ neogeo_top neogeo_top (
 	.ADPCMB_DATA_READY   ( ADPCMB_DATA_READY )
 );
 
-mist_video #(.COLOR_DEPTH(6), .SD_HCNT_WIDTH(10), .USE_BLANKS(1'b0)) mist_video(
+mist_video #(.COLOR_DEPTH(6), .SD_HCNT_WIDTH(10), .USE_BLANKS(1'b1)) mist_video(
 	.clk_sys        ( CLK_48M          ),
 	.SPI_SCK        ( SPI_SCK          ),
 	.SPI_SS3        ( SPI_SS3          ),

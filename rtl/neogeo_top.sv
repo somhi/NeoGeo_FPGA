@@ -60,8 +60,8 @@ module neogeo_top
 	output reg [7:0] BLUE,
 	output        HSYNC,
 	output        VSYNC,
-	output        HBLANK,
-	output        VBLANK,
+	output reg    HBLANK,
+	output reg    VBLANK,
 	output        CE_PIXEL,
 
 	// audio
@@ -899,10 +899,14 @@ wire [7:0] G8 = G6[6] ? 8'd0 : {G6[5:0],  G6[4:3]};
 wire [7:0] B8 = B6[6] ? 8'd0 : {B6[5:0],  B6[4:3]};
 
 always @(posedge CLK_48M) begin
+	reg CHBL2;
 	if (CLK_EN_6MB) begin
 		RED   <= ~SHADOW ? R8 : {1'b0, R8[7:1]};
 		GREEN <= ~SHADOW ? G8 : {1'b0, G8[7:1]};
 		BLUE  <= ~SHADOW ? B8 : {1'b0, B8[7:1]};
+		CHBL2 <= CHBL;
+		HBLANK <= CHBL2;
+		VBLANK <= ~nBNKB;
 	end
 end
 assign CE_PIXEL = CLK_EN_6MB;
