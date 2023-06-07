@@ -277,11 +277,19 @@ module fast_cycle_sync(
 	wire R107A_OUT = nPARSING_DONE | S111_nQ;
 	//FDPCell R103(O109A_OUT, T95A_OUT, R107A_OUT, S109A_OUT, WR_ACTIVE);
 
-	always @(posedge CLK, negedge R107A_OUT, negedge S109A_OUT)
-		if (!R107A_OUT) WR_ACTIVE <= 1;
-		else if (!S109A_OUT) WR_ACTIVE <= 0;
-		else if (O109A_OUT_RISE) WR_ACTIVE <= T95A_OUT;
-
+	reg WR_ACTIVE_REG;
+	always @(*) begin
+		if (!R107A_OUT)
+			WR_ACTIVE = 1;
+		else if (!S109A_OUT)
+			WR_ACTIVE = 0;
+		else
+			WR_ACTIVE = WR_ACTIVE_REG;
+	end
+	always @(posedge CLK) begin
+		WR_ACTIVE_REG <= WR_ACTIVE;
+		if (O109A_OUT_RISE) WR_ACTIVE_REG <= T95A_OUT;
+	end
 
 	//FD2 T129A(CLK_24M, T126B_OUT, , T129A_nQ);
 	always @(posedge CLK) if (CLK_EN_24M_N) T129A_nQ <= ~T126B_OUT;
