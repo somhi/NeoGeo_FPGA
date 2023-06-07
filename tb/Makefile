@@ -3,6 +3,7 @@ OBJ_DIR=obj_dir
 VERILATOR_DIR=/usr/share/verilator/include
 HDL_FILES = \
 	../rtl/video${SYNC}/autoanim.v \
+	../rtl/video/autoanim.v \
 	../rtl/video${SYNC}/fast_cycle.v \
 	../rtl/video/fast_cycle.v \
 	../rtl/video${SYNC}/slow_cycle.v \
