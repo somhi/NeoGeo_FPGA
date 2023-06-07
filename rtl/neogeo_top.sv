@@ -54,6 +54,7 @@ module neogeo_top
 	input         DBG_SPR_EN,
 	input  [63:0] RTC,
 
+	// video
 	output reg [7:0] RED,
 	output reg [7:0] GREEN,
 	output reg [7:0] BLUE,
@@ -61,12 +62,27 @@ module neogeo_top
 	output        VSYNC,
 	output        HBLANK,
 	output        VBLANK,
+	output        CE_PIXEL,
 
+	// audio
 	output [15:0] LSOUND,
 	output [15:0] RSOUND,
 
-	output        CE_PIXEL,
+	// cartridge hardware variants
+	input   [3:0] CART_PCHIP,
+	input   [1:0] CART_CHIP,     // legacy option: 0 - none, 1 - PRO-CT0, 2 - Link MCU
+	input   [1:0] CMC_CHIP,      // type 1/2
+	input         ROM_WAIT,      // ROMWAIT from cart. 0 - Full speed, 1 - 1 wait cycle
+	input   [1:0] P_WAIT,        // PWAIT from cart. 0 - Full speed, 1 - 1 wait cycle, 2 - 2 cycles	
 
+	// memcard save-load
+	input         CLK_MEMCARD,
+	input  [11:0] MEMCARD_ADDR,
+	input         MEMCARD_WR,
+	input  [15:0] MEMCARD_DIN,
+	output [15:0] MEMCARD_DOUT,
+
+	// external RAM/ROM signals
 	output [14:0] SLOW_SCB1_VRAM_ADDR,
 	input  [15:0] SLOW_SCB1_VRAM_DATA_IN,
 	output [15:0] SLOW_SCB1_VRAM_DATA_OUT,
@@ -142,7 +158,6 @@ always @(posedge CLK_48M) begin
 end
 //////////////////   Her Majesty   ///////////////////
 
-reg  [31:0] cfg = 0;
 wire [15:0] snd_right;
 wire [15:0] snd_left;
 
@@ -224,7 +239,7 @@ wire        SLOW_VRAM_WR;
 
 assign SLOW_SCB1_VRAM_WE = ~BWE && SLOW_VRAM_WR && SCB1_CS;
 assign SLOW_SCB1_VRAM_RD = ~BOE && ~SLOW_VRAM_WR && SCB1_CS && VRAM_CPU_CYCLE;
-assign SLOW_SCB1_VRAM_ADDR = CPU_VRAM_ADDR;
+assign SLOW_SCB1_VRAM_ADDR = CPU_VRAM_ADDR[15:0];
 assign SLOW_SCB1_VRAM_DATA_OUT = SLOW_VRAM_DATA_OUT;
 
 wire   VRAM_SPRMAP_CYCLE = VRAM_CYCLE == 2'b10;
@@ -263,13 +278,6 @@ assign SFIX_RD = PCK2;
 wire [15:0] SROM_DATA = SFIX_DATA;
 //wire [15:0] PROM_DATA;
 
-wire [3:0] cart_pchip = cfg[22:20];
-wire       use_pcm    = cfg[23];
-wire [1:0] cart_chip  = cfg[25:24]; // legacy option: 0 - none, 1 - PRO-CT0, 2 - Link MCU
-wire [1:0] cmc_chip   = cfg[27:26]; // type 1/2
-wire       rom_wait   = cfg[28];    // ROMWAIT from cart. 0 - Full speed, 1 - 1 wait cycle
-wire [1:0] p_wait     = cfg[30:29]; // PWAIT from cart. 0 - Full speed, 1 - 1 wait cycle, 2 - 2 cycles
-
 // Memory write flag for backup memory & memory card
 // (~nBWL | ~nBWU) : [AES] Unibios (set to MVS) softdip settings, [MVS] cab settings, dates, timer, high scores, saves, & bookkeeeping
 // CARD_WE         : [AES/MVS] game saves and high scores
@@ -277,7 +285,7 @@ wire bk_change = sram_slot_we | CARD_WE;
 wire memcard_change;
 
 reg sram_slot_we;
-always @(posedge clk_sys) begin
+always @(posedge CLK_48M) begin
 	sram_slot_we <= 0;
 	if(~nBWL | ~nBWU) begin
 		sram_slot_we <= (M68K_ADDR[15:1] >= 'h190 && M68K_ADDR[15:1] < 'h4190);
@@ -404,7 +412,7 @@ assign M68K_DATA = M68K_RW ? 16'bzzzzzzzz_zzzzzzzz : FX68K_DATAOUT;
 assign FIXD = S2H1 ? SROM_DATA[15:8] : SROM_DATA[7:0];
 
 // Disable ROM read in PORT zone if the game uses a special chip
-assign M68K_DATA = (nROMOE & nSROMOE & |{nPORTOE, cart_chip, cart_pchip}) ? 16'bzzzzzzzzzzzzzzzz : PROM_DATA;
+assign M68K_DATA = (nROMOE & nSROMOE & |{nPORTOE, CART_CHIP, CART_PCHIP}) ? 16'bzzzzzzzzzzzzzzzz : PROM_DATA;
 
 assign RAM_ADDR = {M68K_ADDR[15:1], 1'b0};
 assign RAM_DATA = M68K_DATA;
@@ -441,14 +449,14 @@ dpram #(15) WRAMU(
 	.wren_b(~nRESET)
 );
 */
-assign P2ROM_ADDR = (!cart_pchip) ? {P_BANK, M68K_ADDR[19:1], 1'b0} : 24'bZ;
+assign P2ROM_ADDR = (!CART_PCHIP) ? {P_BANK, M68K_ADDR[19:1], 1'b0} : 24'bZ;
 
 neo_pvc neo_pvc
 (
 	.nRESET(nRESET),
 	.CLK_48M(CLK_48M),
 
-	.ENABLE(cart_pchip == 2),
+	.ENABLE(CART_PCHIP == 2),
 
 	.M68K_ADDR(M68K_ADDR),
 	.M68K_DATA(M68K_DATA),
@@ -465,7 +473,7 @@ neo_sma neo_sma
 	.nRESET(nRESET),
 	.CLK_48M(CLK_48M),
 
-	.TYPE(cart_pchip),
+	.TYPE(CART_PCHIP),
 
 	.M68K_ADDR(M68K_ADDR),
 	.M68K_DATA(M68K_DATA),
@@ -525,11 +533,12 @@ memcard MEMCARD(
 	.CDA(CDA), .CDD(CDD),
 	.CARD_WE(CARD_WE),
 	.M68K_DATA(M68K_DATA[7:0]),
-	.clk_sys(clk_sys),
-	.memcard_addr(memcard_addr),
-	.memcard_wr(memcard_wr),
-	.sd_buff_dout(sd_buff_dout),
-	.sd_buff_din_memcard(memcard_buff_dout)
+
+	.clk_sys(CLK_MEMCARD),
+	.memcard_addr(MEMCARD_ADDR),
+	.memcard_wr(MEMCARD_WR),
+	.memcard_din(MEMCARD_DIN),
+	.memcard_dout(MEMCARD_DOUT)
 );
 
 /*
@@ -585,7 +594,7 @@ zmc2_dot ZMC2DOT(
 	.GAD(GAD_SEC), .GBD(GBD_SEC)
 );	
 
-assign M68K_DATA[7:0] = ((cart_chip == 1) & ~nPORTOEL) ?
+assign M68K_DATA[7:0] = ((CART_CHIP == 1) & ~nPORTOEL) ?
 								{GBD_SEC[1], GBD_SEC[0], GBD_SEC[3], GBD_SEC[2],
 								GAD_SEC[1], GAD_SEC[0], GAD_SEC[3], GAD_SEC[2]} : 8'bzzzzzzzz;
 
@@ -606,7 +615,7 @@ neo_cmc neo_cmc
 	.CLK(CLK_48M),
 	.PCK2B_EN(PCK2_EN_N),
 	.PBUS(PBUS[14:0]),
-	.TYPE(cmc_chip),
+	.TYPE(CMC_CHIP),
 	.ADDR(FIXMAP_ADDR),
 	.BANK(FIX_BANK)
 );
@@ -622,7 +631,7 @@ com COM(
 	.M68K_DIN(COM_DOUT)
 );
 
-assign M68K_DATA = (cart_chip == 2) ? COM_DOUT : 16'bzzzzzzzz_zzzzzzzz;
+assign M68K_DATA = (CART_CHIP == 2) ? COM_DOUT : 16'bzzzzzzzz_zzzzzzzz;
 
 syslatch SL(
 	.nRESET(nRESET),
@@ -695,7 +704,7 @@ neo_c1 C1(
 	.P2_IN(~P2_IN),
 	.nCD1(nCD1), .nCD2(nCD2),
 	.nWP(0),			// Memory card is never write-protected
-	.nROMWAIT(~rom_wait), .nPWAIT0(~p_wait[0]), .nPWAIT1(~p_wait[1]), .PDTACK(1),
+	.nROMWAIT(~ROM_WAIT), .nPWAIT0(~P_WAIT[0]), .nPWAIT1(~P_WAIT[1]), .PDTACK(1),
 	.SDD_WR(SDD_OUT),
 	.SDD_RD(SDD_RD_C1),
 	.nSDZ80R(nSDZ80R), .nSDZ80W(nSDZ80W), .nSDZ80CLR(nSDZ80CLR),

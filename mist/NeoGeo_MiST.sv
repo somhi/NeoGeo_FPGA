@@ -44,6 +44,7 @@ localparam CONF_STR = {
 	"O45,Scanlines,Off,25%,50%,75%;",
 	"O6,Swap Joystick,Off,On;",
 	"O7,Blending,Off,On;",
+	"OB,Memory Card,Enable,Disable;",
 	"O8,[DIP] Settings,OFF,ON;",
 	"O9,[DIP] Freeplay,OFF,ON;",
 	"OA,[DIP] Freeze,OFF,ON;",
@@ -64,6 +65,7 @@ wire        oneplayer = 1'b0;
 wire  [2:0] dipsw = status[10:8];
 wire        systype = status[1];
 wire        vmode = status[3];
+wire        memcard = ~status[11];
 
 wire        fix_en = ~status[14];
 wire        spr_en = ~status[15];
@@ -564,6 +566,7 @@ neogeo_top neogeo_top (
 
 	.VIDEO_MODE    ( vmode ),
 	.SYSTEM_TYPE   ( SYSTEM_TYPE ),
+	.MEMCARD_EN    ( memcard ),
 	.COIN1         ( m_coin1 ),
 	.COIN2         ( m_coin2 ),
 	.P1_IN         ( P1_IN ),
