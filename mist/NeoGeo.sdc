@@ -120,7 +120,10 @@ set_multicycle_path -to {VGA_*[*]} -setup 3
 set_multicycle_path -to {VGA_*[*]} -hold 2
 
 #set_multicycle_path -from [get_clocks $sdram_clk] -to [get_clocks $mem_clk] -setup 2
-
+set_multicycle_path -from {neogeo_top:neogeo_top|cpu_68k:M68KCPU|fx68k:FX68K|excUnit:excUnit|aob[*]}  -to [get_clocks $mem_clk] -setup 2
+set_multicycle_path -from {neogeo_top:neogeo_top|cpu_68k:M68KCPU|fx68k:FX68K|excUnit:excUnit|aob[*]}  -to [get_clocks $mem_clk] -hold 1
+set_multicycle_path -from {neogeo_top:neogeo_top|cpu_z80:Z80CPU|T80pa:cpu|T80:u0|A[*]}  -to [get_clocks $mem_clk] -setup 2
+set_multicycle_path -from {neogeo_top:neogeo_top|cpu_z80:Z80CPU|T80pa:cpu|T80:u0|A[*]}  -to [get_clocks $mem_clk] -hold 1
 
 #**************************************************************
 # Set Maximum Delay
