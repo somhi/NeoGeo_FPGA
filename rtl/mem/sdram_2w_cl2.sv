@@ -67,8 +67,7 @@ module sdram_2w_cl2 (
 	output reg        cpu2_rom_valid,
 
 	// fix rom
-	input             sfix_req,
-	output reg        sfix_ack = 0,
+	input             sfix_cs,
 	input      [23:1] sfix_addr,
 	output reg [15:0] sfix_q,
 
@@ -222,7 +221,7 @@ reg  [1:0] ds[2];
 reg        port1_state;
 reg        port2_state;
 reg        vram_req_state, vram_sel_latch;
-reg        sfix_req_state;
+reg        sfix_valid;
 reg        lo_rom_req_state;
 reg        sp_req_state;
 reg        samplea_req_state;
@@ -275,7 +274,7 @@ always @(*) begin
 		addr_next[0][23:1] = lo_rom_addr[23:1];
 		ds_next[0] = 2'b11;
 		{ oe_next[0], we_next[0] } = 2'b10;
-	end else if (sfix_req ^ sfix_req_state) begin
+	end else if (sfix_cs & !sfix_valid) begin
 		next_port[0] = PORT_SFIX;
 		addr_next[0][23:1] = sfix_addr[23:1];
 		ds_next[0] = 2'b11;
@@ -344,6 +343,7 @@ always @(posedge clk) begin
 		cpu1_rom_valid <= 0;
 		cpu1_ram_valid <= 0;
 		cpu2_rom_valid <= 0;
+		sfix_valid <= 0;
 		// initialization takes place at the end of the reset phase
 		if(t == STATE_RAS0) begin
 
@@ -366,6 +366,7 @@ always @(posedge clk) begin
 		if (!cpu1_rom_cs) cpu1_rom_valid <= 0;
 		if (~|cpu1_ram_ds) cpu1_ram_valid <= 0;
 		if (!cpu2_rom_cs) cpu2_rom_valid <= 0;
+		if (!sfix_cs) sfix_valid <= 0;
 
 		// RAS phase
 		// bank 0,1
@@ -383,7 +384,6 @@ always @(posedge clk) begin
 			end
 			case (next_port[0])
 				PORT_REQ: port1_state <= port1_req;
-				PORT_SFIX: sfix_req_state <= sfix_req;
 				PORT_VRAM: begin vram_req_state <= vram_req; vram_sel_latch <= vram_sel; end
 				PORT_LOROM: lo_rom_req_state <= lo_rom_req;
 				default: ;
@@ -465,7 +465,7 @@ always @(posedge clk) begin
 				PORT_CPU1_ROM: begin cpu1_rom_q <= sd_din; end
 				PORT_CPU1_RAM: begin cpu1_ram_q <= sd_din; end
 				PORT_CPU2_ROM: begin cpu2_rom_q <= sd_din; end
-				PORT_SFIX: begin sfix_q[15:0] <= sd_din; sfix_ack <= sfix_req; end
+				PORT_SFIX: begin sfix_q[15:0] <= sd_din; sfix_valid <= 1; end
 				PORT_VRAM: if (vram_sel_latch) vram_q2 <= sd_din; else vram_q1[15:0] <= sd_din;
 				PORT_LOROM: begin lo_rom_q <= sd_din; lo_rom_ack <= lo_rom_req; end
 				default: ;

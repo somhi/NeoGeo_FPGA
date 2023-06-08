@@ -193,7 +193,6 @@ wire [14:0] SPRMAP_ADDR;
 wire        SPRMAP_RD;
 wire [31:0] SPRMAP_DATA = SLOW_VRAM_DATA_IN_SPR;
 
-reg         sfix_req;
 wire [17:0] SFIX_ADDR;
 wire [15:0] SFIX_DATA;
 wire        SFIX_RD;
@@ -385,13 +384,6 @@ always @(posedge CLK_48M) begin
 	end
 end
 
-// SFIX->SDRAM control
-always @(posedge CLK_48M) begin
-	reg SFIX_RD_OLD;
-	SFIX_RD_OLD <= SFIX_RD;
-	if (SFIX_RD_OLD & !SFIX_RD) sfix_req <= ~sfix_req;
-end
-
 // LO ROM->SDRAM control
 always @(posedge CLK_48M) begin
 	reg [15:0] LO_ROM_ADDR_OLD;
@@ -502,8 +494,7 @@ sdram_2w_cl2 #(96) sdram
   .cpu2_rom_valid( Z80_ROM_READY ),
 
   // FIX ROM
-  .sfix_req      ( sfix_req ),
-  .sfix_ack      ( ),
+  .sfix_cs       ( ~SFIX_RD ),
   .sfix_addr     ( SYSTEM_ROMS ? { 7'b1110100, SFIX_ADDR[15:0] } : { 5'b11100, SFIX_ADDR[17:0] } ),
   .sfix_q        ( SFIX_DATA ),
 
