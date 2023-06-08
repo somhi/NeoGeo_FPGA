@@ -117,9 +117,13 @@ module neo_b1(
 	
 	// CPU palette RAM access decode
 	// JAGU JURA...
-	always @(negedge nAS)
-		nCPU_ACCESS <= A23I | ~A22I;
-	
+	always @(posedge CLK) begin
+		reg nAS_d;
+		nAS_d <= nAS;
+		if (!nAS & nAS_d)
+			nCPU_ACCESS <= A23I | ~A22I;
+	end
+
 	// Fix/Sprite/Blanking select
 	// KUQA KUTU JARA...
 	assign PA_MUX_A = FIX_OPAQUE ? {4'b0000, FIX_PAL_REG, FIX_COLOR} : RAM_MUX_OUT;
