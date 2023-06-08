@@ -557,8 +557,8 @@ wire [15:0] joy0 = joyswap ? joystick_1 : joystick_0;
 wire [15:0] joy1 = joyswap ? joystick_0 : joystick_1;
 wire  [2:0] ps2_mouse;
 wire        use_mouse = 0, ms_pos, ms_btn;
-wire  [9:0] P1_IN = {(joy0[9:8]|ps2_mouse[2]), {use_mouse ? ms_pos : {joy0[7:4]|{3{joy0[11]}}, joy0[0], joy0[1], joy0[2], joy0[3]}}};
-wire  [9:0] P2_IN = {(joy1[9:8]             ), {use_mouse ? ms_btn : {joy1[7:4]|{3{joy1[11]}}, joy1[0], joy1[1], joy1[2], joy1[3]}}};
+wire  [9:0] P1_IN = {joy0[6], joy0[7]|ps2_mouse[2], {use_mouse ? ms_pos : {joy0[9:8], joy0[5:4]}, joy0[0], joy0[1], joy0[2], joy0[3]}};
+wire  [9:0] P2_IN = {joy1[6], joy1[7]             , {use_mouse ? ms_btn : {joy1[9:8], joy1[5:4]}, joy1[0], joy1[1], joy1[2], joy1[3]}};
 
 neogeo_top neogeo_top (
 	.CLK_48M       ( CLK_48M ),
@@ -692,7 +692,7 @@ wire m_up, m_down, m_left, m_right, m_fireA, m_fireB, m_fireC, m_fireD, m_fireE,
 wire m_up2, m_down2, m_left2, m_right2, m_fire2A, m_fire2B, m_fire2C, m_fire2D, m_fire2E, m_fire2F;
 wire m_tilt, m_coin1, m_coin2, m_coin3, m_coin4, m_one_player, m_two_players, m_three_players, m_four_players;
 
-arcade_inputs #(.START1(8), .START2(10), .COIN1(9)) inputs (
+arcade_inputs #(.COIN1(10), .COIN2(11)) inputs (
 	.clk         ( CLK_48M     ),
 	.key_strobe  ( key_strobe  ),
 	.key_pressed ( key_pressed ),

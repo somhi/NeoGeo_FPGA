@@ -4,8 +4,8 @@ This is the port of the [NeoGeo FPGA implementation](https://github.com/MiSTer-d
 
 ## Limitations
 The original Neo Geo system has big RAM/ROM memories, which don't fit into the BRAM of the MiST's FPGA. A new SDRAM controller was written, which can
-read one 64 bit and one 32 bit word simultaneously in just 12 cycles using bank interleaving, and running at 120MHz. Both 32MiB and 64MiB equipped MiSTs are supported,
-the later obviously can load more games.
+read one 64 bit and one 32 bit word simultaneously in just 12 cycles using bank interleaving, and running at 120MHz. Later on, it was replaced by
+a 96MHz variant reading two 32 bit words in 8 cycles. Both 32MiB and 64MiB equipped MiSTs are supported, the later obviously can load more games.
 
 The limitation of ROM sizes for both variants:
 
@@ -26,6 +26,19 @@ TerraOnion .NEO file format was choosen as the supported cart format, as it conv
 [Darksoft to .neo conversion tool](https://gitlab.com/loic.petit/darksoft-to-neosd/)
 
 Note: Core doesn't support encrypted ROMs. Make sure the ROM has no encrypted parts before use. MAME ROM pack includes many encrypted ROMs so it's not recommended for inexperienced users. Using the .neo conversion tool with a MAME ROM set will result in some ROMs still being encrypted. There is an alternate .neo conversion tool for the Darksoft ROM set that will give you a fully decrypted set.
+
+## Controls
+
+| NeoGeo | MiST    |
+|--------|---------|
+| A      | A       |
+| B      | B       |
+| C      | X       |
+| D      | Y       |
+| Start  | Start   |
+| Select | Select  |
+| Coin1  | L       |
+| Coin2  | R       |
 
 ## Sidenotes:
 
