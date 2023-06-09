@@ -39,12 +39,13 @@ localparam CONF_STR = {
 	"NEOGEO;;",
 	"F,ROM,Load BIOS;",
 	"F,NEO,Load Cart;",
+	"S0U,SAV,Load Memory Card;",
+	"TG,Save Memory Card;",
 	"O1,System Type,Console(AES),Arcade(MVS);",
 	"O3,Video Mode,NTSC,PAL;",
 	"O45,Scanlines,Off,25%,50%,75%;",
 	"O6,Swap Joystick,Off,On;",
 	"O7,Blending,Off,On;",
-	"OB,Memory Card,Enable,Disable;",
 	"O8,[DIP] Settings,OFF,ON;",
 	"O9,[DIP] Freeplay,OFF,ON;",
 	"OA,[DIP] Freeze,OFF,ON;",
@@ -65,7 +66,7 @@ wire        oneplayer = 1'b0;
 wire  [2:0] dipsw = status[10:8];
 wire        systype = status[1];
 wire        vmode = status[3];
-wire        memcard = ~status[11];
+wire        bk_save = status[16];
 
 wire        fix_en = ~status[14];
 wire        spr_en = ~status[15];
@@ -98,6 +99,18 @@ wire        key_pressed;
 wire  [7:0] key_code;
 wire        key_strobe;
 
+reg  [31:0] sd_lba;
+reg         sd_rd = 0;
+reg         sd_wr = 0;
+wire        sd_ack;
+wire  [8:0] sd_buff_addr;
+wire  [7:0] sd_buff_dout;
+wire  [7:0] sd_buff_din;
+wire        sd_buff_wr;
+wire        sd_buff_rd;
+wire  [1:0] img_mounted;
+wire [31:0] img_size;
+
 user_io #(
 	.STRLEN(($size(CONF_STR)>>3)),
 	.ROM_DIRECT_UPLOAD(1'b1))
@@ -120,7 +133,22 @@ user_io(
 	.key_code       (key_code       ),
 	.joystick_0     (joystick_0     ),
 	.joystick_1     (joystick_1     ),
-	.status         (status         )
+	.status         (status         ),
+
+	.clk_sd         (CLK_48M        ),
+	.sd_conf        (1'b0           ),
+	.sd_sdhc        (1'b1           ),
+	.sd_lba         (sd_lba         ),
+	.sd_rd          (sd_rd          ),
+	.sd_wr          (sd_wr          ),
+	.sd_ack         (sd_ack         ),
+	.sd_buff_addr   (sd_buff_addr   ),
+	.sd_dout        (sd_buff_dout   ),
+	.sd_din         (sd_buff_din    ),
+	.sd_dout_strobe (sd_buff_wr     ),
+	.sd_din_strobe  (sd_buff_rd     ),
+	.img_mounted    (img_mounted    ),
+	.img_size       (img_size       )
 	);
 
 wire        ioctl_downl;
@@ -557,7 +585,7 @@ neogeo_top neogeo_top (
 
 	.VIDEO_MODE    ( vmode ),
 	.SYSTEM_TYPE   ( SYSTEM_TYPE ),
-	.MEMCARD_EN    ( memcard ),
+	.MEMCARD_EN    ( bk_ena ),
 	.COIN1         ( m_coin1 ),
 	.COIN2         ( m_coin2 ),
 	.P1_IN         ( P1_IN ),
@@ -579,6 +607,12 @@ neogeo_top neogeo_top (
 	.RSOUND        ( ch_right ),
 
 	.CE_PIXEL      ( ce_pix ),
+
+	.CLK_MEMCARD   ( CLK_48M      ),
+	.MEMCARD_ADDR  ( MEMCARD_ADDR ),
+	.MEMCARD_WR    ( MEMCARD_WR   ),
+	.MEMCARD_DIN   ( MEMCARD_DIN  ),
+	.MEMCARD_DOUT  ( MEMCARD_DOUT ),
 
 	.P2ROM_ADDR          ( P2ROM_ADDR ),
 	.PROM_DATA           ( PROM_DATA  ),
@@ -699,4 +733,62 @@ arcade_inputs #(.COIN1(10), .COIN2(11)) inputs (
 	.player2     ( {m_fire2F, m_fire2E, m_fire2D, m_fire2C, m_fire2B, m_fire2A, m_up2, m_down2, m_left2, m_right2} )
 );
 
+// Backup RAM handler
+reg    [7:0] sd_buff_dout_odd;
+wire  [11:0] MEMCARD_ADDR = {sd_lba[3:0], sd_buff_addr[8:1]};
+wire         MEMCARD_WR = bk_load & sd_buff_wr & sd_buff_addr[0];
+wire  [15:0] MEMCARD_DIN = {sd_buff_dout, sd_buff_dout_odd};
+wire  [15:0] MEMCARD_DOUT;
+assign       sd_buff_din = sd_buff_addr[0] ? MEMCARD_DOUT[15:8] : MEMCARD_DOUT[7:0];
+
+always @(posedge CLK_48M) if (sd_buff_wr & !sd_buff_addr[0]) sd_buff_dout_odd <= sd_buff_dout;
+
+reg  bk_ena     = 0;
+reg  bk_load    = 0;
+//reg  bk_reset   = 0;
+reg [31:9] bk_size;
+
+always @(posedge CLK_48M) begin
+	reg  old_load = 0, old_save = 0, old_ack, old_mounted = 0, old_download = 0;
+	reg  bk_state = 0;
+
+	//bk_reset <= 0;
+
+	old_mounted <= img_mounted[0];
+	if(~old_mounted && img_mounted[0]) begin
+		if (|img_size) begin
+			bk_ena <= 1;
+			bk_load <= 1;
+			bk_size <= img_size[31:9];
+		end else
+			bk_ena <= 0;
+	end
+
+	old_load <= bk_load;
+	old_save <= bk_save;
+	old_ack  <= sd_ack;
+
+	if(~old_ack & sd_ack) {sd_rd, sd_wr} <= 0;
+
+	if(!bk_state) begin
+		if(bk_ena & ((~old_load & bk_load) | (~old_save & bk_save))) begin
+			bk_state <= 1;
+			sd_lba <= 0;
+			sd_rd <=  bk_load;
+			sd_wr <= ~bk_load;
+		end
+	end else begin
+		if(old_ack & ~sd_ack) begin
+			if(&sd_lba[3:0] || sd_lba == bk_size) begin
+				//if (bk_load) bk_reset <= 1;
+				bk_load <= 0;
+				bk_state <= 0;
+			end else begin
+				sd_lba <= sd_lba + 1'd1;
+				sd_rd  <=  bk_load;
+				sd_wr  <= ~bk_load;
+			end
+		end
+	end
+end
 endmodule 

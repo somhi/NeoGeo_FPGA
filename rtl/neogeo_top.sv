@@ -523,7 +523,7 @@ assign SRAM_RD = ~{nSRAMOEU, nSRAMOEL} & {2{SYSTEM_MVS}};
 assign SRAM_OUT = RAM_Q;
 
 // Memory card
-assign {nCD1, nCD2} = {2{MEMCARD_EN & ~SYSTEM_CDx}};	// Always plugged in CD systems
+assign {nCD1, nCD2} = {2{~MEMCARD_EN & ~SYSTEM_CDx}};	// Always plugged in CD systems
 assign CARD_WE = (SYSTEM_CDx | (~nCARDWEN & CARDWENB)) & ~nCRDW;
 
 wire [15:0] memcard_buff_dout;
