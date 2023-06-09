@@ -110,7 +110,7 @@ module lspc2_a2_sync(
 	wire [3:0] T31_P;
 	wire [3:0] U24_P;
 /* verilator lint_on UNOPTFLAT */
-	wire [3:0] O227_Q;
+	reg  [3:0] O227_Q;
 	
 	wire [7:0] P_MUX_HIGH;
 	wire [7:0] P_MUX_LOW;
@@ -137,7 +137,7 @@ module lspc2_a2_sync(
 	wire [11:0] FIX_TILE;
 	wire [3:0] HSHRINK;
 	wire [13:0] PIPE_C;
-	wire [3:0] SPR_TILEMAP;
+	reg  [3:0] SPR_TILEMAP;
 	wire [7:0] ACTIVE_RD;
 	reg  [3:0] P201_Q;
 	
@@ -336,6 +336,7 @@ module lspc2_a2_sync(
 	always @(posedge CLK) if (LSPC_EN_12M_N) P201_Q <= {P201_Q[2:0], ~P198A_OUT};
 	wire P219A_OUT = ~|{O159_QB, ~P201_Q[0]};
 	wire P222A_OUT = ~&{P219A_OUT, ~P201_Q[1]};
+	wire P222A_OUT_RISE = P201_Q[0] & ~P201_Q[1] & ~O159_QB & LSPC_EN_12M_N;
 	wire CLK_SPR_TILE = P201_Q[1];
 	wire R94A_OUT = ~&{P201_Q[2], R91_Q};
 	wire D208B_OUT = ~P201_Q[3];
@@ -571,7 +572,8 @@ module lspc2_a2_sync(
 	wire S164_OUT = VSHRINK_LINE[2] ^ ~S186_OUT;
 	wire S162_OUT = VSHRINK_LINE[1] ^ ~S186_OUT;
 	wire S168_OUT = VSHRINK_LINE[0] ^ ~S186_OUT;
-	FDSCell O227(P222A_OUT, {S166_OUT, S164_OUT, S162_OUT, S168_OUT}, O227_Q);
+	//FDSCell O227(P222A_OUT, {S166_OUT, S164_OUT, S162_OUT, S168_OUT}, O227_Q);
+	always @(posedge CLK) if (P222A_OUT_RISE) O227_Q <= {S166_OUT, S164_OUT, S162_OUT, S168_OUT};
 	//FDSCell G233(~P201_Q[1], O227_Q, G233_Q);
 	always @(posedge CLK) if (LSPC_EN_12M_N & P201_Q[1] & P198A_OUT) G233_Q <= O227_Q; // falling edge of P201_Q[1]
 	assign SPR_LINE[0] = SPR_TILE_VFLIP ^ G233_Q[0];
@@ -582,7 +584,8 @@ module lspc2_a2_sync(
 	wire Q182_OUT = VSHRINK_INDEX[2] ^ ~S186_OUT;
 	wire Q186_OUT = VSHRINK_INDEX[1] ^ ~S186_OUT;
 	wire Q172_OUT = VSHRINK_INDEX[0] ^ ~S186_OUT;
-	FDSCell O175(P222A_OUT, {Q184_OUT, Q182_OUT, Q186_OUT, Q172_OUT}, SPR_TILEMAP);
+	//FDSCell O175(P222A_OUT, {Q184_OUT, Q182_OUT, Q186_OUT, Q172_OUT}, SPR_TILEMAP);
+	always @(posedge CLK) if (P222A_OUT_RISE) SPR_TILEMAP <= {Q184_OUT, Q182_OUT, Q186_OUT, Q172_OUT};
 	
 	
 	wire VCS_EN = ~VCS & R94A_OUT; // VCS rising edge
@@ -724,7 +727,7 @@ module lspc2_a2_sync(
 							nVRAM_WRITE_REQ, SPR_TILEMAP, SPR_TILE_VFLIP, SPR_TILE_HFLIP, SPR_AA_3, SPR_AA_2,
 							FIX_TILE, FIX_PAL, SPR_TILE, SPR_PAL, VRAM_LOW_READ, nCPU_WR_LOW, R91_nQ,
 							T160A_OUT, T160B_OUT, CLK_ACTIVE_RD_EN, ACTIVE_RD_PRE8, Q174B_OUT,
-							CLK_SPR_ATTR_EN, SPRITEMAP_ADDR_MSB, CLK_SPR_TILE_EN, P222A_OUT, ~P201_Q[1],
+							CLK_SPR_ATTR_EN, SPRITEMAP_ADDR_MSB, CLK_SPR_TILE_EN, P222A_OUT_RISE, ~P201_Q[1],
 							SVRAM_ADDR, SVRAM_DATA_IN, SVRAM_DATA_OUT, BOE, BWE, FIXMAP_ADDR, SPRMAP_ADDR, VRAM_CYCLE);
 	
 	wire nCPU_WR_HIGH, R91_Q, SPR_SIZE0, SPR_SIZE5, O159_QB;

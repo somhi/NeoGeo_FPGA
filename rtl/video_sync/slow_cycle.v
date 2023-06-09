@@ -59,7 +59,7 @@ module slow_cycle_sync(
 	input CLK_SPR_ATTR_EN,
 	input SPRITEMAP_ADDR_MSB,
 	input CLK_SPR_TILE_EN,
-	input P222A_OUT,
+	input P222A_OUT_RISE,
 	input P210A_OUT,
 	
 	output [14:0] SVRAM_ADDR,
@@ -151,8 +151,10 @@ module slow_cycle_sync(
 	assign FIXMAP_ADDR = {4'b1110, O62_nQ, PIXEL_HPLUS, ~PIXEL_H8, RASTERC[7:3]};
 	assign SPRMAP_ADDR = {H57_Q, ACTIVE_RD, O185_Q, SPR_TILEMAP, K166_Q};
 	
-	wire O185_Q,/* H57_Q, K166_Q, N165_nQ,*/ N169A_OUT/*, N160_Q*/;
-	FDM O185(P222A_OUT, SPRITEMAP_ADDR_MSB, O185_Q);
+	wire /*O185_Q, H57_Q, K166_Q, N165_nQ,*/ N169A_OUT/*, N160_Q*/;
+	reg O185_Q;
+	//FDM O185(P222A_OUT, SPRITEMAP_ADDR_MSB, O185_Q);
+	always @(posedge CLK) if (P222A_OUT_RISE) O185_Q <= SPRITEMAP_ADDR_MSB;
 	reg H57_Q;
 	//FDM H57(CLK_ACTIVE_RD, ACTIVE_RD_PRE8, H57_Q);
 	always @(posedge CLK) if (CLK_ACTIVE_RD_EN) H57_Q <= ACTIVE_RD_PRE8;
