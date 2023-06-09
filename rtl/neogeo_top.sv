@@ -812,7 +812,7 @@ jt10 YM2610(
 	.irq_n(nZ80INT),
 	.adpcma_addr(ADPCMA_ADDR), .adpcma_bank(ADPCMA_BANK), .adpcma_roe_n(nSDROE), .adpcma_data(ADPCMA_DATA),
 	.adpcmb_addr(ADPCMB_ADDR), .adpcmb_roe_n(nSDPOE), .adpcmb_data(SYSTEM_CDx ? 8'h08 : ADPCMB_DATA),	// CD has no ADPCM-B
-	.snd_right(snd_right), .snd_left(snd_left), .snd_enable(4'b1111), .ch_enable(6'b111111)
+	.snd_right(snd_right), .snd_left(snd_left),/* .snd_enable(4'b1111),*/ .ch_enable(6'b111111)
 );
 
 // For Neo CD only

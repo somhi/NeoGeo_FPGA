@@ -4,3 +4,6 @@
 [submodule "rtl/cpu/T80"]
 	path = rtl/cpu/T80
 	url = https://github.com/mist-devel/T80.git
+[submodule "rtl/jt12"]
+	path = rtl/jt12
+	url = https://github.com/jotego/jt12.git
