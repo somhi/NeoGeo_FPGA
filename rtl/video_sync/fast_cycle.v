@@ -89,6 +89,7 @@ module fast_cycle_sync(
 	wire [10:0] D_BOT;
 	reg  PARSE_CHAIN /* synthesis keep */;		// DEBUG
 	wire T90A_OUT /* synthesis keep */;			// DEBUG
+	reg [8:0] PARSE_INDEX_test;
 	reg [8:0] PARSE_INDEX;
 	wire P39A_OUT;
 	reg [41:0] SR_SPR_PARAMS;	// 3*14
@@ -169,8 +170,9 @@ module fast_cycle_sync(
 	//assign F = CWE ? 16'bzzzzzzzzzzzzzzzz : F_OUT_MUX;
 	
 	// OK
-	always @(posedge PARSE_INDEX_INC_CLK)
-		{J231_Q, J87_G152_Q} <= PARSE_INDEX;
+	//always @(posedge PARSE_INDEX_INC_CLK)
+		//{J231_Q, J87_G152_Q} <= PARSE_INDEX;
+	always @(posedge CLK) if (PARSE_INDEX_INC_CLK_EN) {J231_Q, J87_G152_Q} <= PARSE_INDEX;
 	
 	// OK
 /*
@@ -328,7 +330,7 @@ module fast_cycle_sync(
 	wire T94_OUT = ~&{T102_Q[1:0], O102B_OUT};
 	wire T92_OUT = ~&{~T102_Q[2], ~T102_Q[1], T102_Q[0], VRAM_HIGH_ADDR_SB};
 	assign T90A_OUT = ~&{T94_OUT, T92_OUT};
-	
+	/*
 	always @(posedge O110B_OUT or negedge nNEW_LINE)
 	begin
 		if (!nNEW_LINE)
@@ -336,6 +338,12 @@ module fast_cycle_sync(
 		else
 			ACTIVE_WR_ADDR <= ACTIVE_WR_ADDR + 1'd1;
 	end
+	*/
+	always @(posedge CLK, negedge nNEW_LINE)
+		if (!nNEW_LINE)
+			ACTIVE_WR_ADDR <= 0;
+		else if (O110B_OUT_RISE)
+			ACTIVE_WR_ADDR <= ACTIVE_WR_ADDR + 1'd1;
 	/*
 	C43 H198(O110B_OUT, 4'b0000, 1'b1, 1'b1, 1'b1, nNEW_LINE, ACTIVE_WR_ADDR[3:0], H198_CO);
 	// Used for test mode
@@ -343,6 +351,7 @@ module fast_cycle_sync(
 	C43 I189(O110B_OUT, 4'b0000, 1'b1, 1'b1, H222A_OUT, nNEW_LINE, ACTIVE_WR_ADDR[7:4]);
 	*/
 	wire O110B_OUT = O109A_OUT | VRAM_HIGH_ADDR_SB;
+	wire O110B_OUT_RISE = O109A_OUT_RISE & ~VRAM_HIGH_ADDR_SB;
 	wire nACTIVE_FULL = ~&{ACTIVE_WR_ADDR[6:5]};	// J100B
 	
 	
@@ -429,20 +438,28 @@ module fast_cycle_sync(
 	
 	// OK
 	// Parsing counter
+	/*
 	always @(posedge PARSE_INDEX_INC_CLK or negedge nNEW_LINE)
 	begin
 		if (!nNEW_LINE)
-			PARSE_INDEX <= 9'd0;
+			PARSE_INDEX_test <= 9'd0;
 		else
+			PARSE_INDEX_test <= PARSE_INDEX_test + 1'd1;
+	end*/
+	always @(posedge CLK, negedge nNEW_LINE)
+		if (!nNEW_LINE)
+			PARSE_INDEX <= 0;
+		else if (PARSE_INDEX_INC_CLK_EN)
 			PARSE_INDEX <= PARSE_INDEX + 1'd1;
-	end
+
 	wire PARSE_INDEX_INC_CLK = O102B_OUT | O109A_OUT;	// O105B
+	wire PARSE_INDEX_INC_CLK_EN = O109A_OUT_RISE & ~O102B_OUT;
 	/*C43 H127(PARSE_INDEX_INC_CLK, 4'b0000, 1'b1, 1'b1, 1'b1, nNEW_LINE, PARSE_INDEX[3:0], H127_CO);
 	assign H125B_OUT = H127_CO | 1'b0;	// Used for test mode
 	C43 I121(PARSE_INDEX_INC_CLK, 4'b0000, 1'b1, H125B_OUT, 1'b1, nNEW_LINE, PARSE_INDEX[7:4], I121_CO);
 	C43 J127(PARSE_INDEX_INC_CLK, 4'b0000, 1'b1, H125B_OUT, I121_CO, nNEW_LINE, J127_Q);
 	assign PARSE_INDEX[8] = J127_Q[0];*/
-	
+
 	wire O109A_OUT = T125A_OUT | CLK_CPU_READ_HIGH;
 	wire O109A_OUT_RISE = ~O109A_OUT & (T125A_OUT_RISE | CLK_CPU_READ_HIGH_RISE);
 
