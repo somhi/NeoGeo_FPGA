@@ -50,6 +50,7 @@ module neogeo_top
 	input         COIN2,
 	input   [9:0] P1_IN,
 	input   [9:0] P2_IN,
+	output reg    MS_XY,
 	input         DBG_FIX_EN,
 	input         DBG_SPR_EN,
 	input  [63:0] RTC,
@@ -408,6 +409,11 @@ wire IACK = &{FC2, FC1, FC0};
 // FX68K doesn't like byte masking with Z's, replace with 0's:
 assign FX68K_DATAIN = M68K_RW ? M68K_DATA : 16'h0000;
 assign M68K_DATA = M68K_RW ? 16'bzzzzzzzz_zzzzzzzz : FX68K_DATAOUT;
+
+// mouse axis selector
+always @(posedge CLK_48M)
+	if(!nBITW0 && !M68K_ADDR[6:3]) MS_XY <= M68K_DATA[0];
+
 
 assign FIXD = S2H1 ? SROM_DATA[15:8] : SROM_DATA[7:0];
 

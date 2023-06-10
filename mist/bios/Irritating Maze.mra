@@ -1,7 +1,7 @@
 <misterromdescription>
-    <name>Europe MVS (Ver. 2)</name>
+    <name>Irritating Maze System ROM</name>
     <mameversion>0245</mameversion>
-    <setname>neogeo</setname>
+    <setname>irrmaze</setname>
     <year>1991</year>
     <manufacturer>SNK</manufacturer>
     <category>BIOS</category>
@@ -10,11 +10,11 @@
 
     <buttons names="A,B,Select,Start,C,D,Coin1,Coin2"/>
 
-    <rom index="0" zip="neogeo.zip" md5="None">
-      <part name="sp-s2.sp1"/>
-      <part name="sp-s2.sp1"/>
-      <part name="sp-s2.sp1"/>
-      <part name="sp-s2.sp1"/>
+    <rom index="0" zip="irrmaze.zip|neogeo.zip" md5="None">
+      <part name="236-bios.sp1"/>
+      <part name="236-bios.sp1"/>
+      <part name="236-bios.sp1"/>
+      <part name="236-bios.sp1"/>
 
       <part name="000-lo.lo"/>
       <part name="sfix.sfix"/>

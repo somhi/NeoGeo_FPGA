@@ -44,8 +44,9 @@ localparam CONF_STR = {
 	"O1,System Type,Console(AES),Arcade(MVS);",
 	"O3,Video Mode,NTSC,PAL;",
 	"O45,Scanlines,Off,25%,50%,75%;",
-	"O6,Swap Joystick,Off,On;",
 	"O7,Blending,Off,On;",
+	"O6,Swap Joystick,Off,On;",
+	"OB,Input,Joystick,Mouse;",
 	"O8,[DIP] Settings,OFF,ON;",
 	"O9,[DIP] Freeplay,OFF,ON;",
 	"OA,[DIP] Freeze,OFF,ON;",
@@ -67,6 +68,7 @@ wire  [2:0] dipsw = status[10:8];
 wire        systype = status[1];
 wire        vmode = status[3];
 wire        bk_save = status[16];
+wire        mouse_en = status[11];
 
 wire        fix_en = ~status[14];
 wire        spr_en = ~status[15];
@@ -98,6 +100,10 @@ wire        no_csync;
 wire        key_pressed;
 wire  [7:0] key_code;
 wire        key_strobe;
+wire signed [8:0] mouse_x;
+wire signed [8:0] mouse_y;
+wire        mouse_strobe;
+wire  [7:0] mouse_flags;
 
 reg  [31:0] sd_lba;
 reg         sd_rd = 0;
@@ -133,6 +139,10 @@ user_io(
 	.key_code       (key_code       ),
 	.joystick_0     (joystick_0     ),
 	.joystick_1     (joystick_1     ),
+	.mouse_x        (mouse_x        ),
+	.mouse_y        (mouse_y        ),
+	.mouse_strobe   (mouse_strobe   ),
+	.mouse_flags    (mouse_flags    ),
 	.status         (status         ),
 
 	.clk_sd         (CLK_48M        ),
@@ -567,17 +577,25 @@ sdram_2w_cl2 #(96) sdram
   .sp_q          ( CROM_DATA )
 );
 
+wire       ms_xy;
+reg  [7:0] ms_x, ms_y;
+wire [7:0] ms_pos = ms_xy ? ms_y : ms_x;
+wire [7:0] ms_btn = {2'b00, mouse_flags[1:0], 4'b0000};
+
+always @(posedge CLK_48M) begin
+	if(mouse_strobe) begin
+		ms_x <= ms_x + mouse_x;
+		ms_y <= ms_y - mouse_y;
+	end
+end
+
 wire [15:0] ch_left, ch_right;
 wire  [7:0] R, G, B;
 wire        HBlank, VBlank, HSync, VSync;
 wire        ce_pix;
 wire  [1:0] SYSTEM_TYPE = {1'b0, systype};
-wire [15:0] joy0 = joyswap ? joystick_1 : joystick_0;
-wire [15:0] joy1 = joyswap ? joystick_0 : joystick_1;
-wire  [2:0] ps2_mouse;
-wire        use_mouse = 0, ms_pos, ms_btn;
-wire  [9:0] P1_IN = {joy0[6], joy0[7]|ps2_mouse[2], {use_mouse ? ms_pos : {joy0[9:8], joy0[5:4]}, joy0[0], joy0[1], joy0[2], joy0[3]}};
-wire  [9:0] P2_IN = {joy1[6], joy1[7]             , {use_mouse ? ms_btn : {joy1[9:8], joy1[5:4]}, joy1[0], joy1[1], joy1[2], joy1[3]}};
+wire  [9:0] P1_IN = {m_fireC , m_fireD | mouse_flags[2], mouse_en ? ms_pos : {m_fireF,  m_fireE,  m_fireB,  m_fireA,  m_right,  m_left,  m_down,  m_up }};
+wire  [9:0] P2_IN = {m_fire2C, m_fire2D                , mouse_en ? ms_btn : {m_fire2F, m_fire2E, m_fire2B, m_fire2A, m_right2, m_left2, m_down2, m_up2}};
 
 neogeo_top neogeo_top (
 	.CLK_48M       ( CLK_48M ),
@@ -591,6 +609,7 @@ neogeo_top neogeo_top (
 	.P1_IN         ( P1_IN ),
 	.P2_IN         ( P2_IN ),
 	.DIPSW         ( dipsw ),
+	.MS_XY         ( ms_xy ),
 	.DBG_FIX_EN    ( fix_en ),
 	.DBG_SPR_EN    ( spr_en ),
 	.RTC           ( rtc ),
@@ -749,7 +768,7 @@ reg  bk_load    = 0;
 reg [31:9] bk_size;
 
 always @(posedge CLK_48M) begin
-	reg  old_load = 0, old_save = 0, old_ack, old_mounted = 0, old_download = 0;
+	reg  old_load = 0, old_save = 0, old_ack, old_mounted = 0;
 	reg  bk_state = 0;
 
 	//bk_reset <= 0;
