@@ -11,11 +11,11 @@ The limitation of ROM sizes for both variants:
 
 **32 MiB** - supports  ~6 MiB PROMS and 24 MiB CROM+VROMs (in any size combination)
 
-**64 MiB** - supports ~14 MiB PROMS and 48 MiB CROM+VROMs (in any size combinaion. Note: PROM size is not a real limitiation in this case.)
+**64 MiB** - supports ~14 MiB PROMS and 48 MiB CROM+VROMs (in any size combination. Note: PROM size is not a real limitiation in this case.)
 
 ## Usage
 
-Internal ROMs (System ROM, SFIX, LO ROM and SM1 ROM) can be created from MAME's neogeo.zip with the help of the MRA files.
+Internal ROMs (System ROM, SFIX, LO ROM and SM1 ROM) can be created from MAME's neogeo.zip with the help of the [MRA files](https://github.com/mist-devel/mist-board/wiki/CoreDocArcade#mra-and-arc-files).
 
 TerraOnion .NEO file format was choosen as the supported cart format, as it conveniently merges all the various ROMs in one file. The following utilities can be used to create such files:
 
@@ -39,6 +39,13 @@ Note: Core doesn't support encrypted ROMs. Make sure the ROM has no encrypted pa
 | Select | Select  |
 | Coin1  | L       |
 | Coin2  | R       |
+
+Mouse (trackball) support for the game Irritating Maze can be selected in the OSD. Middle mouse button is Start. **Note:** this game requires its own system BIOS.
+
+## Memory Card
+
+A 8K (8192 bytes) empty file can be used as a memory card. It can be loaded-unloaded and saved via the OSD (use a .SAV extension). Hint: rename it to **NeoGeo.vhd** and it'll be auto-mounted. One memory card
+can store progress and high score information for a couple of games.
 
 ## Sidenotes:
 
