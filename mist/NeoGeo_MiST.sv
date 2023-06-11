@@ -33,12 +33,12 @@ module NeoGeo_MiST(
 
 wire [6:0] core_mod;
 
-`define DEBUG 1
+//`define DEBUG 1
 
 localparam CONF_STR = {
 	"NEOGEO;;",
-	"F,ROM,Load BIOS;",
 	"F,NEO,Load Cart;",
+	"F,ROM,Load BIOS;",
 	"S0U,SAV,Load Memory Card;",
 	"TG,Save Memory Card;",
 	"O1,System Type,Console(AES),Arcade(MVS);",
@@ -285,8 +285,8 @@ function [5:0] ceil_bit;
 endfunction
 
 // Cart download control
-wire        system_rom_write = ioctl_downl && (ioctl_index == 0 || ioctl_index == 1);
-wire        cart_rom_write = ioctl_downl && ioctl_index == 2;
+wire        system_rom_write = ioctl_downl && (ioctl_index == 0 || ioctl_index == 2);
+wire        cart_rom_write = ioctl_downl && ioctl_index == 1;
 reg         port1_req, port1_ack;
 reg         port2_req, port2_ack;
 reg  [31:0] PSize, SSize, MSize, V1Size, V2Size, CSize;
