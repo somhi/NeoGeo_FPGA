@@ -148,7 +148,7 @@ module lspc2_a2_sync(
 	
 	assign S1H1 = LSPC_3M;
 	assign S2H1 = LSPC_1_5M;
-	assign SVRAM_WR = ~VRAM_ADDR[15] & ~ nVRAM_WRITE_REQ;
+	assign SVRAM_WR = ~nCPU_WR_LOW;
 	//FD2 T168A(CLK_24M, T160A_OUT, PCK1, nPCK1);
 	//FD2 T162A(CLK_24M, T160B_OUT, PCK2);
 	//FDM T172(nPCK1, SPR_TILE_HFLIP, T172_Q);
