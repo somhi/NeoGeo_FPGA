@@ -38,6 +38,7 @@ module sdram_2w_cl2 (
 	input             init_n,     // init signal after FPGA config to initialize RAM
 	input             clk,        // sdram clock
 	input             clkref,     // external signal to sync the state machine
+	input             refresh_en,
 
 	// 1st bank
 	input             port1_req,
@@ -247,7 +248,7 @@ reg  [2:0] next_port[2];
 reg  [2:0] port[2];
 
 reg        refresh;
-reg [10:0] refresh_cnt;
+reg [23:0] refresh_cnt;
 wire       need_refresh = (refresh_cnt >= RFRSH_CYCLES);
 
 // PORT1: bank 3
@@ -415,9 +416,9 @@ always @(posedge clk) begin
 				PORT_SAMPLEA: samplea_req_state <= samplea_req;
 				PORT_SAMPLEB: sampleb_req_state <= sampleb_req;
 				default:
-					if (need_refresh && !we_latch[0] && !oe_latch[0]) begin
+					if (refresh_en && need_refresh && !refresh && !we_latch[0] && !oe_latch[0]) begin
 						refresh <= 1'b1;
-						refresh_cnt <= 0;
+						refresh_cnt <= refresh_cnt - RFRSH_CYCLES;
 						sd_cmd <= CMD_AUTO_REFRESH;
 					end
 			endcase

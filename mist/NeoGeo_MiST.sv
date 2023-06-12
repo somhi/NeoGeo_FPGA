@@ -515,6 +515,7 @@ sdram_2w_cl2 #(96) sdram
   .init_n        ( pll_locked   ),
   .clk           ( CLK_96M      ),
   .clkref        ( SFIX_RD      ),
+  .refresh_en    ( HBlank | VBlank ),
 
   // Bank 3 ops
   .port1_a       ( port1_addr[23:1] ),
