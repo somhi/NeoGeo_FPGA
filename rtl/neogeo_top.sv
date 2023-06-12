@@ -1,6 +1,8 @@
 //============================================================================
-//  SNK NeoGeo for MiSTer
+//  SNK NeoGeo top-level, FPGA-independent synchronous version
+//  Copyright (C) 2023 Gyorgy Szombathelyi
 //
+//  Based on SNK NeoGeo for MiSTer
 //  Copyright (C) 2018 Sean 'Furrtek' Gonsalves
 //
 //  This program is free software; you can redistribute it and/or modify it
