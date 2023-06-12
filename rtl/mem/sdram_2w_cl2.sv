@@ -37,6 +37,7 @@ module sdram_2w_cl2 (
 	// cpu/chipset interface
 	input             init_n,     // init signal after FPGA config to initialize RAM
 	input             clk,        // sdram clock
+	input             clkref,     // external signal to sync the state machine
 
 	// 1st bank
 	input             port1_req,
@@ -159,11 +160,14 @@ localparam STATE_LAST      = 3'd7;
 reg [3:0] t;
 
 always @(posedge clk) begin
+	reg clkref_d;
 	t <= t + 1'd1;
 	if (t == STATE_LAST) t <= STATE_RAS0;
 	//if (t == STATE_RAS0 && !refresh && !oe_next[0] && !we_next[0] && !oe_next[1] && !we_next[1] && !oe_latch[1] && !we_latch[1]) t <= STATE_RAS0;
 	//if (t == STATE_RAS0 && !refresh && !oe_next[0] && !we_next[0] && (oe_next[1] || we_next[1]) && !oe_latch[1] && !we_latch[1]) t <= STATE_RAS1;
 	//if (t == STATE_RAS1 && !oe_latch[0] && !we_latch[0] && !oe_next[1] && !we_next[1] && !need_refresh) t <= STATE_RAS0;
+	clkref_d <= clkref;
+	if (clkref_d & ~clkref & t != STATE_RAS0 & ~|oe_latch) t <= t;
 end
 
 // ---------------------------------------------------------------------
