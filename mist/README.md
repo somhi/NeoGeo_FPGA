@@ -49,18 +49,13 @@ can store progress and high score information for a couple of games.
 
 ## Sidenotes:
 
-The core is inherently unstable. While Furrtek (Sean Gonsalves) did a very good and tedious job reverse-engineering and documenting the original Neo-Geo chipset,
-the resulting HDL is not very good for FPGAs. Probably MiSTer's Cyclone V FPGA can deal with it better, as it's built in a newer process, has smaller inner delays, or the more 
-recent Quartus tool is better synthesizing such code, but it still broken. Translating old ASIC designs 1-1 into FPGA won't work, as there are dozens of generated signals
+The core was inherently unstable. While Furrtek (Sean Gonsalves) did a very good and tedious job reverse-engineering and documenting the original Neo-Geo chipset,
+the resulting HDL is not very good for FPGAs. Probably MiSTer's Cyclone V FPGA can deal with it better, as it's built in a newer process, has smaller inner delays, has more clock networks,
+or the more recent Quartus tool is better synthesizing such code, but it still broken. Translating old ASIC designs 1-1 into FPGA won't work, as there are dozens of generated signals
 (even with combinatorial output) used as clocks, which are glitching, the compiler cannot check if flip-flops clocked by these signals meet setup and hold times, resulting
 in very unstable cores.
 
-As I (gyurco) already translated many such arcade cores into proper synchronous code, I can say it's a huge job. I normally don't require nor accept any donations for my hobby, but
-in this case I choose a different path. Converting Neo-Geo to proper HDL could easily take some months, and frankly I don't have the motivation to do it. So **only** for this work,
-I accept donations, then I'll know if others are really interested in this (as I won't do it for just myself). MiSTer users can also benefit from a more stable core.
+At the end, the core's HDL was converted into synchronous code, using a simulator to check if it still produces the same signals as before. Finally all latches were eliminated,
+and all generated clock usages were removed.
 
-So if you want to support and appreciate this work, you can send donations to:
-
-Via [PayPal](https://paypal.me/gyorgyszombathelyi)
-
-Via [ko-fi](https://ko-fi.com/szombathelyigyorgy)
+Thanks to all who supported this conversion!
