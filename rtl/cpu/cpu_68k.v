@@ -19,7 +19,7 @@
 //============================================================================
 
 module cpu_68k(
-	input CLK_48M,
+	input CLK,
 	input CLK_EN_68K_P, //CLK_68KCLK
 	input CLK_EN_68K_N,
 	input nRESET,
@@ -40,11 +40,11 @@ wire EN_PHI1 = CLK_EN_68K_P;
 wire EN_PHI2 = CLK_EN_68K_N;
 
 reg reset;
-always @(posedge CLK_48M)
+always @(posedge CLK)
 	if (EN_PHI2) reset <= ~nRESET;
 
 fx68k FX68K(
-		.clk(CLK_48M),
+		.clk(CLK),
 		.extReset(reset),
 		.pwrUp(reset),
 		

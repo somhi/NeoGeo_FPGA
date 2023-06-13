@@ -17,7 +17,7 @@
 // Z80 CPU plug into TV80 core
 
 module cpu_z80(
-	input CLK_48M,
+	input CLK,
 	input CLK4P_EN,
 	input CLK4N_EN,
 	input nRESET,
@@ -35,7 +35,7 @@ module cpu_z80(
 
 	T80pa cpu(
 		.RESET_n(nRESET),
-		.CLK(CLK_48M),
+		.CLK(CLK),
 		.CEN_p(CLK4P_EN),
 		.CEN_n(CLK4N_EN),
 		.WAIT_n(nWAIT),

@@ -393,7 +393,7 @@ wire nDTACK_ADJ = ~&{nSROMOE, nROMOE, nPORTOE, ~CD_EXT_RD} ? ~PROM_DATA_READY | 
                   |(WRAM_RD | WRAM_WE | SRAM_RD | SRAM_WE) ? ~RAM_DATA_READY | nDTACK : nDTACK;
 
 cpu_68k M68KCPU(
-	.CLK_48M(CLK_48M),
+	.CLK(CLK_48M),
 	.CLK_EN_68K_P(CLK_EN_68K_P),
 	.CLK_EN_68K_N(CLK_EN_68K_N),
 	.nRESET(nRESET_WD),
@@ -536,7 +536,7 @@ assign CARD_WE = (SYSTEM_CDx | (~nCARDWEN & CARDWENB)) & ~nCRDW;
 
 wire [15:0] memcard_buff_dout;
 memcard MEMCARD(
-	.CLK_48M(CLK_48M),
+	.CLK(CLK_48M),
 	.SYSTEM_CDx(SYSTEM_CDx),
 	.CDA(CDA), .CDD(CDD),
 	.CARD_WE(CARD_WE),
@@ -798,7 +798,7 @@ assign Z80_ROM_RD = ~(nSDMRD | nSDROM);
 assign Z80_ROM_ADDR = {MA, SDA[10:0]};
 
 cpu_z80 Z80CPU(
-	.CLK_48M(CLK_48M),
+	.CLK(CLK_48M),
 	.CLK4P_EN(CLK_EN_4M_P),
 	.CLK4N_EN(CLK_EN_4M_N),
 	.nRESET(Z80_nRESET),

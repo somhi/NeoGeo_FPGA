@@ -1112,8 +1112,20 @@ wire IPL2_OUT = ~(SYSTEM_CDx & CD_IRQ);
 // If the address is in a ROM zone, PROM_DATA_READY is used to extend the normal nDTACK output by NEO-C1
 wire nDTACK_ADJ = ~&{nSROMOE, nROMOE, nPORTOE, ~CD_EXT_RD} ? ~PROM_DATA_READY | nDTACK : nDTACK;
 
+reg M68K_CLKEN;
+// Divide-by-2
+always @(negedge CLK_24M or negedge nRESET)
+begin
+	if (!nRESET)
+		M68K_CLKEN <= 1'b0;
+	else
+		M68K_CLKEN <= ~M68K_CLKEN;
+end
+
 cpu_68k M68KCPU(
-	.CLK_24M(CLK_24M),
+	.CLK(CLK_24M),
+	.CLK_EN_68K_P(M68K_CLKEN),
+	.CLK_EN_68K_N(~M68K_CLKEN),
 	.nRESET(nRESET_WD),
 	.M68K_ADDR(M68K_ADDR),
 	.FX68K_DATAIN(FX68K_DATAIN), .FX68K_DATAOUT(FX68K_DATAOUT),
@@ -1242,7 +1254,7 @@ assign CARD_WE = (SYSTEM_CDx | (~nCARDWEN & CARDWENB)) & ~nCRDW;
 
 wire [15:0] memcard_buff_dout;
 memcard MEMCARD(
-	.CLK_24M(CLK_24M),
+	.CLK(CLK_24M),
 	.SYSTEM_CDx(SYSTEM_CDx),
 	.CDA(CDA), .CDD(CDD),
 	.CARD_WE(CARD_WE),
@@ -1250,8 +1262,8 @@ memcard MEMCARD(
 	.clk_sys(clk_sys),
 	.memcard_addr(memcard_addr),
 	.memcard_wr(memcard_wr),
-	.sd_buff_dout(sd_buff_dout),
-	.sd_buff_din_memcard(memcard_buff_dout)
+	.memcard_din(sd_buff_dout),
+	.memcard_dout(memcard_buff_dout)
 );
 
 // Feed save file writer with backup RAM data or memory card data
@@ -1539,7 +1551,9 @@ always @(posedge clk_sys) begin
 end
 
 cpu_z80 Z80CPU(
-	.CLK_4M(CLK_4M),
+	.CLK(CLK_8M),
+	.CLK4P_EN(1'b1),
+	.CLK4N_EN(1'b1),
 	.nRESET(Z80_nRESET),
 	.SDA(SDA), .SDD_IN(SDD_IN), .SDD_OUT(SDD_OUT),
 	.nIORQ(nIORQ),	.nMREQ(nMREQ),	.nRD(nSDRD), .nWR(nSDWR),
@@ -1764,7 +1778,7 @@ jt10 YM2610(
 	.irq_n(nZ80INT),
 	.adpcma_addr(ADPCMA_ADDR), .adpcma_bank(ADPCMA_BANK), .adpcma_roe_n(nSDROE), .adpcma_data(ADPCMA_DATA),
 	.adpcmb_addr(ADPCMB_ADDR), .adpcmb_roe_n(nSDPOE), .adpcmb_data(SYSTEM_CDx ? 8'h08 : ADPCMB_DATA),	// CD has no ADPCM-B
-	.snd_right(snd_right), .snd_left(snd_left), .snd_enable(~{4{dbg_menu}} | ~status[28:25]), .ch_enable(~status[62:57])
+	.snd_right(snd_right), .snd_left(snd_left), /*.snd_enable(~{4{dbg_menu}} | ~status[28:25]),*/ .ch_enable(~status[62:57])
 );
 
  
