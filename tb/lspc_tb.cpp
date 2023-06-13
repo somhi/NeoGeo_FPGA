@@ -59,17 +59,8 @@ void tick(int c) {
 	if (c) {
 		tb->SFIX_DATA = sfix_out[tb->SFIX_ADDR << 1] | sfix_out[(tb->SFIX_ADDR << 1) + 1]<<8 ;
 		uint32_t crom_addr = (tb->CROM_ADDR>>2) & 0x3FFFFF;
-		tb->CR_DOUBLE = (uint64_t(crom_even_out[crom_addr] & 0xff | (crom_odd_out[crom_addr] & 0xff) << 8 | 
-		                (crom_even_out[crom_addr] & 0xff00) << 8 | (crom_odd_out[crom_addr] & 0xff00) << 16) & 0xffffffff) |
-		                ((uint64_t(crom_even_out[crom_addr+1] & 0xff | (crom_odd_out[crom_addr+1] & 0xff) << 8 | 
-		                (crom_even_out[crom_addr+1] & 0xff00) << 8 | (crom_odd_out[crom_addr+1] & 0xff00) << 16) & 0xffffffff) << 32);
-
-		//                (crom_even_out[crom_addr+1] & 0xff00) << 8 | (crom_odd_out[crom_addr+1] & 0xff00) << 16) << 32;
-		//tb->CR_DOUBLE |= uint64_t(crom_even_out[crom_addr] & 0xff | (crom_odd_out[crom_addr] & 0xff) << 8 | 
-		//                (crom_even_out[crom_addr] & 0xff00) << 8 | (crom_odd_out[crom_addr] & 0xff00) << 16) << 32;
-		//tb->CR_DOUBLE |= uint64_t(crom_even_out[crom_addr+1] & 0xff | (crom_odd_out[crom_addr+1] & 0xff) << 8 | 
-		//                (crom_even_out[crom_addr+1] & 0xff00) << 8 | (crom_odd_out[crom_addr+1] & 0xff00) << 16) << 32;
-		//tb->CR_DOUBLE = 0xaaaaaaaaaaaaaaaa;
+		tb->CR = crom_even_out[crom_addr] & 0xff | (crom_odd_out[crom_addr] & 0xff) << 8 |
+		        (crom_even_out[crom_addr] & 0xff00) << 8 | (crom_odd_out[crom_addr] & 0xff00) << 16;
 		tb->LO_ROM_DATA = lorom[tb->LO_ROM_ADDR];
 
 		tb->PAL_RAM_DATA = palram[0x1000 | tb->PAL_RAM_ADDR];

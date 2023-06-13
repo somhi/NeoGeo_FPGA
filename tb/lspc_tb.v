@@ -48,7 +48,7 @@ module lspc_tb (
 	output VSYNC,
 
 	output [26:0] CROM_ADDR,
-	input  [63:0] CR_DOUBLE,
+	input  [31:0] CR,
 
 	output [17:0] SFIX_ADDR,
 	input  [15:0] SFIX_DATA,
@@ -244,46 +244,14 @@ always @(posedge CLK_48M) begin
 	if (PCK1_EN_N) C_LATCH_EXT <= PBUS[23:20];
 end
 
-assign CROM_ADDR = {C_LATCH_EXT, C_LATCH, 3'b000};// & CROM_MASK;
+
+// CA4's polarity depends on the tile's h-flip attribute
+// Normal: CA4 high, then low
+// Flipped: CA4 low, then high
+assign CROM_ADDR = {C_LATCH_EXT, C_LATCH, ~CA4, 2'b00};// & CROM_MASK;
 
 wire [ 3: 0] GAD;
 wire [ 3: 0] GBD;
-
-// This is used to split burst-read sprite gfx data in half at the right time
-reg LOAD_SR;
-reg CA4_REG;
-/*
-// CA4's polarity depends on the tile's h-flip attribute
-// Normal: CA4 high, then low
-// Flipped: CA4 low, then high
-always @(negedge CLK_24M) if (LOAD_EN) CA4_REG <= CA4;
-
-// CR_DOUBLE: [8px left] [8px right]
-//         BP  A B C D    A B C D
-wire [31:0] CR = CA4_REG ? CR_DOUBLE[63:32] : CR_DOUBLE[31:0];
-
-neo_zmc2 ZMC2(
-	.CLK(CLK_24M),
-	.CLK_EN_12M_N(CLK_12M),
-	.EVEN(EVEN1), .LOAD_EN(LOAD_EN), .H(H),
-	.CR(CR),
-	.GAD(GAD), .GBD(GBD),
-	.DOTA(DOTA), .DOTB(DOTB)
-);
-
-*/
-// CA4's polarity depends on the tile's h-flip attribute
-// Normal: CA4 high, then low
-// Flipped: CA4 low, then high
-always @(posedge CLK_24M) begin
-	LOAD_SR <= LOAD;
-	if (~LOAD_SR & LOAD) CA4_REG <= CA4;
-end
-
-// CR_DOUBLE: [8px left] [8px right]
-//         BP  A B C D    A B C D
-
-wire [31:0] CR = ~CA4_REG ? CR_DOUBLE[63:32] : CR_DOUBLE[31:0];
 
 neo_zmc2 ZMC2(
 	.CLK(CLK_48M),
