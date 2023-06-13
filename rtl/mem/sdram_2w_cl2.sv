@@ -117,7 +117,7 @@ module sdram_2w_cl2 (
 parameter  MHZ = 16'd80; // 80 MHz default clock, set it to proper value to calculate refresh rate
 
 localparam RASCAS_DELAY   = 3'd2;   // tRCD=20ns -> 2 cycles@<100MHz
-localparam BURST_LENGTH   = 3'b010; // 000=1, 001=2, 010=4, 011=8
+localparam BURST_LENGTH   = 3'b001; // 000=1, 001=2, 010=4, 011=8
 localparam ACCESS_TYPE    = 1'b0;   // 0=sequential, 1=interleaved
 localparam CAS_LATENCY    = 3'd2;   // 2/3 allowed
 localparam OP_MODE        = 2'b00;  // only 00 (standard operation) allowed
@@ -332,6 +332,7 @@ always @(*) begin
 	end else begin
 		next_port[1] = PORT_NONE;
 		addr_next[1] = addr_latch[1];
+		{ oe_next[1], we_next[1] } = 2'b00;
 	end
 end
 
