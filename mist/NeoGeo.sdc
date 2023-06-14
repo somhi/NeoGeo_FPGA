@@ -125,6 +125,11 @@ set_multicycle_path -from {neogeo_top:neogeo_top|cpu_68k:M68KCPU|fx68k:FX68K|exc
 set_multicycle_path -from {neogeo_top:neogeo_top|cpu_z80:Z80CPU|T80pa:cpu|T80:u0|A[*]}  -to [get_clocks $mem_clk] -setup 2
 set_multicycle_path -from {neogeo_top:neogeo_top|cpu_z80:Z80CPU|T80pa:cpu|T80:u0|A[*]}  -to [get_clocks $mem_clk] -hold 1
 
+set_multicycle_path -from {*Size[*]}  -to [get_clocks $mem_clk] -setup 2
+set_multicycle_path -from {*Size[*]}  -to [get_clocks $mem_clk] -hold 1
+set_multicycle_path -from {pcm_merged}  -to [get_clocks $mem_clk] -setup 2
+set_multicycle_path -from {pcm_merged}  -to [get_clocks $mem_clk] -hold 1
+
 #**************************************************************
 # Set Maximum Delay
 #**************************************************************
