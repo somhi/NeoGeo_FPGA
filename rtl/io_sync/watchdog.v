@@ -16,6 +16,7 @@
 
 module watchdog(
 	input CLK,
+	input DOGE,
 	input nLDS, RW,
 	input A23I, A22I,
 	input [21:17] M68K_ADDR_U,
@@ -42,7 +43,7 @@ module watchdog(
 	// $300001 (LDS)
 	// 0011000xxxxxxxxxxxxxxxx1
 	// MAME says 00110001xxxxxxxxxxxxxxx1 but NEO-B1 doesn't have A16
-	wire WDRESET = &{nRST, ~|{nLDS, RW, A23I, A22I}, M68K_ADDR_U[21:20], ~|{M68K_ADDR_U[19:17]}};
+	wire WDRESET = ~DOGE | &{nRST, ~|{nLDS, RW, A23I, A22I}, M68K_ADDR_U[21:20], ~|{M68K_ADDR_U[19:17]}};
 	
 	always @(posedge CLK)
 	begin

@@ -42,7 +42,11 @@ localparam CONF_STR = {
 	"F,ROM,Load BIOS;",
 	"S0U,SAV,Load Memory Card;",
 	"TG,Save Memory Card;",
-	"O1,System Type,Console(AES),Arcade(MVS);",
+	"SC,CUE,Mount CD;",
+	"O12,System Type,Console(AES),Arcade(MVS),CD,CDZ;",
+	"OKL,CD Speed,1x,2x,3x,4x;",
+	"OHI,CD Region,US,EU,JP,AS;",
+	"OJ,CD Lid,Closed,Opened;",
 	"O3,Video Mode,NTSC,PAL;",
 	"O45,Scanlines,Off,25%,50%,75%;",
 	"O7,Blending,Off,On;",
@@ -66,10 +70,13 @@ wire  [1:0] orientation = 2'b00;
 wire        rotate = 1'b0;
 wire        oneplayer = 1'b0;
 wire  [2:0] dipsw = status[10:8];
-wire        systype = status[1];
+wire  [1:0] systype = status[2:1];
 wire        vmode = status[3];
 wire        bk_save = status[16];
 wire        mouse_en = status[11];
+wire  [1:0] cd_speed = status[21:20];
+wire  [1:0] cd_region = status[18:17];
+wire        cd_lid = ~status[19];
 
 wire        fix_en = ~status[14];
 wire        spr_en = ~status[15];
@@ -120,7 +127,9 @@ wire [31:0] img_size;
 
 user_io #(
 	.STRLEN(($size(CONF_STR)>>3)),
-	.ROM_DIRECT_UPLOAD(1'b1))
+	.ROM_DIRECT_UPLOAD(1'b1),
+	.FEATURES(32'h8) /* Neo-Geo CD */
+	)
 user_io(
 	.clk_sys        (CLK_48M        ),
 	.conf_str       (CONF_STR       ),
@@ -195,23 +204,68 @@ always @(posedge CLK_48M) begin
 
 end
 
+wire        CD_DATA_DOWNLOAD;
+wire        CD_DATA_WR;
+wire        CD_DATA_WR_READY;
+wire        CDDA_WR;
+wire        CDDA_WR_READY;
+wire [15:0] CD_DATA_DIN;
+wire [11:1] CD_DATA_ADDR;
+wire [39:0] CDD_STATUS_IN;
+wire        CDD_STATUS_LATCH;
+wire [39:0] CDD_COMMAND_DATA;
+wire        CDD_COMMAND_SEND;
+wire [15:0] CD_AUDIO_L;
+wire [15:0] CD_AUDIO_R;
+
+data_io_neogeo data_io_neogeo(
+	.clk_sys       ( CLK_48M      ),
+	.SPI_SCK       ( SPI_SCK      ),
+	.SPI_SS2       ( SPI_SS2      ),
+	.SPI_DI        ( SPI_DI       ),
+	.SPI_DO        ( SPI_DO       ),
+	.reset         ( reset        ),
+
+	.CD_SPEED         ( cd_speed ),
+	.CDD_STATUS_IN    ( CDD_STATUS_IN ),
+	.CDD_STATUS_LATCH ( CDD_STATUS_LATCH ),
+	.CDD_COMMAND_DATA ( CDD_COMMAND_DATA ),
+	.CDD_COMMAND_SEND ( CDD_COMMAND_SEND ),
+	.CD_DATA_DOWNLOAD ( CD_DATA_DOWNLOAD ),
+	.CD_DATA_WR       ( CD_DATA_WR ),
+	.CD_DATA_DIN      ( CD_DATA_DIN ),
+	.CD_DATA_ADDR     ( CD_DATA_ADDR ),
+	.CD_DATA_WR_READY ( CD_DATA_WR_READY ),
+	.CDDA_WR          ( CDDA_WR ),
+	.CDDA_WR_READY    ( CDDA_WR_READY )
+);
+
+
 wire        SYSTEM_ROMS;
 
 wire [23:0] P2ROM_ADDR;
 wire [15:0] PROM_DATA;
+wire [15:0] PROM_DOUT;
+wire  [1:0] PROM_DS;
 wire        PROM_DATA_READY;
 wire        ROM_RD;
 wire        PORT_RD;
 wire        SROM_RD;
-
-wire [15:0] RAM_ADDR;
-wire [15:0] RAM_DATA;
-wire        RAM_DATA_READY;
-wire [15:0] RAM_Q;
-wire  [1:0] WRAM_WE;
-wire  [1:0] WRAM_RD;
-wire  [1:0] SRAM_WE;
-wire  [1:0] SRAM_RD;
+wire        WRAM_WE;
+wire        WRAM_RD;
+wire        SRAM_WE;
+wire        SRAM_RD;
+wire        CD_EXT_RD;
+wire        CD_EXT_WR;
+wire        CD_FIX_RD;
+wire        CD_FIX_WR;
+wire        CD_Z80_WR;
+wire        CD_SPR_RD;
+wire        CD_SPR_WR;
+wire        CD_PCM_RD;
+wire        CD_PCM_WR;
+wire [15:0] SP_PCM_Q;
+reg         SP_PCM_READY;
 
 reg         sdr_vram_req;
 wire        sdr_vram_ack;
@@ -278,10 +332,10 @@ function [5:0] ceil_bit;
 		bits = 0;
 		for (i = 0; i < 31; i = i + 1)
 			if (value[i]) begin
-				ceil_bit = i;
+				ceil_bit = i[5:0];
 				bits = bits + 1;
 			end
-		if (bits > 1) ceil_bit = ceil_bit + 1;
+		if (bits > 1) ceil_bit = ceil_bit + 1'd1;
    end
 endfunction
 
@@ -291,6 +345,7 @@ wire        cart_rom_no_adpcm = ioctl_index == 2;
 wire        cart_rom_write = ioctl_downl && (ioctl_index == 1  || ioctl_index == 2);
 reg         port1_req, port1_ack;
 reg         port2_req, port2_ack;
+reg  [15:0] port2_d, port2_q;
 reg  [31:0] PSize, SSize, MSize, V1Size, V2Size, CSize;
 reg  [31:0] P2Mask, CMask, V1Mask, V2Mask;
 reg   [2:0] region;
@@ -309,6 +364,9 @@ always @(*) begin
 		default: region_size = 0;
 	endcase
 end
+
+wire SP_PCM_CS = CD_SPR_RD | CD_SPR_WR | CD_PCM_RD | CD_PCM_WR;
+reg SP_PCM_CS_D;
 
 always @(posedge CLK_48M) begin
 	reg [1:0] written = 0;
@@ -351,8 +409,10 @@ always @(posedge CLK_48M) begin
 				// ROM data
 				if (region <= 2)
 					port1_req <= ~port1_req;
-				else if (region <= 5 && (!cart_rom_no_adpcm || region != 3 || region != 4))
+				else if (region <= 5 && (!cart_rom_no_adpcm || region != 3 || region != 4)) begin
 					port2_req <= ~port2_req;
+					port2_d <= {ioctl_dout, ioctl_dout};
+				end
 				written <= 1;
 			end
 		end
@@ -382,6 +442,25 @@ always @(posedge CLK_48M) begin
 		if (PSize > 32'h100000) P2Mask <= (1<<ceil_bit(PSize-32'h100000)) - 1'd1;
 		ADPCM_EN <= !cart_rom_no_adpcm;
 	end
+
+	if (systype[1]) begin
+		CMask <= 32'h3FFFFF;
+		CSize <= 32'h400000;
+		V1Mask <= 32'hFFFFF;
+		ADPCM_EN <= 1;
+	end
+
+	// CD System sprite/PCM area read/write
+	SP_PCM_CS_D <= SP_PCM_CS;
+
+	if (!SP_PCM_CS_D & SP_PCM_CS) begin
+		port2_req <= ~port2_req;
+		port2_d <= PROM_DOUT;
+	end else if (port2_req == port2_ack)
+		SP_PCM_READY <= 1;
+
+	if (!SP_PCM_CS) SP_PCM_READY <= 0;
+
 end
 
 wire [23:0] system_port1_addr = ioctl_addr[23:19] == 0 ? { 5'b1111_1, ioctl_addr[18:0] } : // system ROM
@@ -395,7 +474,9 @@ wire [23:0] cart_port1_addr = region == 1 ? { 5'b1110_0, offset[18:5],offset[2:0
 
 wire [23:0] port1_addr = system_rom_write ? system_port1_addr : cart_port1_addr;
 
-wire [25:0] port2_addr = region == 3 ? CSize + offset : // V1 ROM
+wire [25:0] port2_addr = (CD_SPR_RD | CD_SPR_WR) ? P2ROM_ADDR[21:0] : 
+                         (CD_PCM_RD | CD_PCM_WR) ? {4'h4, P2ROM_ADDR[19:0]} :
+                         region == 3 ? CSize + offset : // V1 ROM
                          region == 4 ? CSize + V1Size + offset : // V2 ROM
 						               {offset[25:7], ioctl_addr[5:2], ~ioctl_addr[6], ioctl_addr[0], ioctl_addr[1]}; // CROM
 
@@ -508,6 +589,23 @@ end
 // 1110 11xx xxxx xxxx xxxx xxxx    SM1 
 // 1111 0xxx xxxx xxxx xxxx xxxx    Z80 Cart ROM
 // 1111 1xxx xxxx xxxx xxxx xxxx    SROM
+reg [23:0] ROM_ADDR;
+always @(*) begin
+	if (SROM_RD)                             ROM_ADDR = { 5'b11111, P2ROM_ADDR[18:0] };
+	else if (ROM_RD)                         ROM_ADDR = P2ROM_ADDR[19:0];
+	else if (CD_EXT_RD | CD_EXT_WR)          ROM_ADDR = P2ROM_ADDR[20:0];
+	else if (CD_Z80_WR)                      ROM_ADDR = { 8'b11110000, P2ROM_ADDR[15:0] };
+	else if (CD_FIX_RD | CD_FIX_WR)          ROM_ADDR = { 6'b111000, P2ROM_ADDR[17:0] };
+	else if (WRAM_WE | WRAM_RD)              ROM_ADDR = { 8'b11101011, P2ROM_ADDR[15:0] };
+	else if (SRAM_WE | SRAM_RD)              ROM_ADDR = { 8'b11101010, P2ROM_ADDR[15:0] };
+	else                                     ROM_ADDR = 24'h100000 + (P2ROM_ADDR[23:0] & P2Mask[23:0]);
+end
+
+wire  [1:0] ROM_WR_DS = {2{(CD_EXT_WR | CD_Z80_WR | CD_FIX_WR | SRAM_WE | WRAM_WE)}} & PROM_DS;
+wire [15:0] P2ROM_Q;
+wire        P2ROM_DATA_READY;
+assign PROM_DATA = (CD_SPR_RD | CD_PCM_RD) ? port2_q : P2ROM_Q;
+assign PROM_DATA_READY = SP_PCM_READY | P2ROM_DATA_READY;
 
 sdram_2w_cl2 #(96) sdram
 (
@@ -527,17 +625,12 @@ sdram_2w_cl2 #(96) sdram
   .port1_q       (  ),
 
   // Main CPU
-  .cpu1_rom_addr ( SROM_RD ? { 5'b11111, P2ROM_ADDR[18:1] } : ROM_RD ? P2ROM_ADDR[19:1] : 23'h80000 + (P2ROM_ADDR[23:1] & P2Mask[23:1])),
-  .cpu1_rom_cs   ( ROM_RD | PORT_RD | SROM_RD ),
-  .cpu1_rom_q    ( PROM_DATA ),
-  .cpu1_rom_valid( PROM_DATA_READY ),
-
-  .cpu1_ram_addr ( { (|(WRAM_WE | WRAM_RD)) ? 8'b1110_1011 : 8'b1110_1010, RAM_ADDR[15:1] } ),
-  .cpu1_ram_we   ( |(WRAM_WE | SRAM_WE) ),
-  .cpu1_ram_d    ( RAM_DATA  ),
-  .cpu1_ram_q    ( RAM_Q     ),
-  .cpu1_ram_ds   ( WRAM_RD | WRAM_WE | SRAM_RD | SRAM_WE ),
-  .cpu1_ram_valid( RAM_DATA_READY ),
+  .cpu1_rom_addr ( ROM_ADDR[23:1] ),
+  .cpu1_rom_cs   ( CD_EXT_RD | CD_EXT_WR | CD_FIX_RD | CD_FIX_WR | CD_Z80_WR | ROM_RD | PORT_RD | SROM_RD | WRAM_RD | SRAM_RD | WRAM_WE | SRAM_WE ),
+  .cpu1_rom_ds   ( ROM_WR_DS ), // for write, 00 for read
+  .cpu1_rom_d    ( PROM_DOUT ),
+  .cpu1_rom_q    ( P2ROM_Q ),
+  .cpu1_rom_valid( P2ROM_DATA_READY ),
 
   // Audio CPU
   .cpu2_rom_addr ( SYSTEM_ROMS ? { 6'b111011, Z80_ROM_ADDR[17:1] } : { 5'b11110, Z80_ROM_ADDR[18:1] } ),
@@ -568,12 +661,12 @@ sdram_2w_cl2 #(96) sdram
 
   // Bank 0-1-2 ops
   .port2_a       ( port2_addr[25:1] ),
-  .port2_req     ( port2_req  ),
+  .port2_req     ( port2_req ),
   .port2_ack     ( port2_ack ),
-  .port2_we      ( cart_rom_write ),
-  .port2_ds      ( { port2_addr[0], ~port2_addr[0] } ),
-  .port2_d       ( { ioctl_dout, ioctl_dout } ),
-  .port2_q       (  ),
+  .port2_we      ( CD_SPR_WR | CD_PCM_WR | cart_rom_write ),
+  .port2_ds      ( cart_rom_write ? { port2_addr[0], ~port2_addr[0] } : PROM_DS ),
+  .port2_d       ( port2_d ),
+  .port2_q       ( port2_q ),
 
   .samplea_addr  ( sample_roma_addr ),
   .samplea_q     ( sample_roma_dout ),
@@ -607,7 +700,6 @@ wire [15:0] ch_left, ch_right;
 wire  [7:0] R, G, B;
 wire        HBlank, VBlank, HSync, VSync;
 wire        ce_pix;
-wire  [1:0] SYSTEM_TYPE = {1'b0, systype};
 wire  [9:0] P1_IN = {m_fireC , m_fireD | mouse_flags[2], mouse_en ? ms_pos : {m_fireF,  m_fireE,  m_fireB,  m_fireA,  m_right,  m_left,  m_down,  m_up }};
 wire  [9:0] P2_IN = {m_fire2C, m_fire2D                , mouse_en ? ms_btn : {m_fire2F, m_fire2E, m_fire2B, m_fire2A, m_right2, m_left2, m_down2, m_up2}};
 
@@ -616,7 +708,7 @@ neogeo_top neogeo_top (
 	.RESET         ( reset   ),
 
 	.VIDEO_MODE    ( vmode ),
-	.SYSTEM_TYPE   ( SYSTEM_TYPE ),
+	.SYSTEM_TYPE   ( systype ),
 	.MEMCARD_EN    ( bk_ena ),
 	.COIN1         ( m_coin1 ),
 	.COIN2         ( m_coin2 ),
@@ -627,6 +719,23 @@ neogeo_top neogeo_top (
 	.DBG_FIX_EN    ( fix_en ),
 	.DBG_SPR_EN    ( spr_en ),
 	.RTC           ( rtc ),
+
+	.CD_REGION_SEL    ( cd_region ),
+	.CD_LID           ( cd_lid ),
+	.CD_SPEED         ( cd_speed ),
+	.CDD_STATUS_IN    ( CDD_STATUS_IN ),
+	.CDD_STATUS_LATCH ( CDD_STATUS_LATCH ),
+	.CDD_COMMAND_DATA ( CDD_COMMAND_DATA ),
+	.CDD_COMMAND_SEND ( CDD_COMMAND_SEND ),
+	.CD_DATA_DOWNLOAD ( CD_DATA_DOWNLOAD ),
+	.CD_DATA_WR       ( CD_DATA_WR ),
+	.CD_DATA_DIN      ( CD_DATA_DIN ),
+	.CD_DATA_ADDR     ( CD_DATA_ADDR ),
+	.CD_DATA_WR_READY ( CD_DATA_WR_READY ),
+	.CDDA_WR          ( CDDA_WR ),
+	.CDDA_WR_READY    ( CDDA_WR_READY ),
+	.CD_AUDIO_L       ( CD_AUDIO_L ),
+	.CD_AUDIO_R       ( CD_AUDIO_R ),
 
 	.RED           ( R ),
 	.GREEN         ( G ),
@@ -649,19 +758,25 @@ neogeo_top neogeo_top (
 
 	.P2ROM_ADDR          ( P2ROM_ADDR ),
 	.PROM_DATA           ( PROM_DATA  ),
+	.PROM_DOUT           ( PROM_DOUT  ),
+	.PROM_DS             ( PROM_DS ),
 	.PROM_DATA_READY     ( PROM_DATA_READY ),
 	.ROM_RD              ( ROM_RD ),
 	.PORT_RD             ( PORT_RD ),
 	.SROM_RD             ( SROM_RD ),
-
-	.RAM_ADDR            ( RAM_ADDR ),
-	.RAM_DATA            ( RAM_DATA ),
-	.RAM_DATA_READY      ( RAM_DATA_READY ),
-	.RAM_Q               ( RAM_Q ),
 	.WRAM_WE             ( WRAM_WE ),
 	.WRAM_RD             ( WRAM_RD ),
 	.SRAM_WE             ( SRAM_WE ),
 	.SRAM_RD             ( SRAM_RD ),
+	.CD_EXT_RD           ( CD_EXT_RD ),
+	.CD_EXT_WR           ( CD_EXT_WR ),
+	.CD_FIX_RD           ( CD_FIX_RD ),
+	.CD_FIX_WR           ( CD_FIX_WR ),
+	.CD_Z80_WR           ( CD_Z80_WR ),
+	.CD_SPR_RD           ( CD_SPR_RD ),
+	.CD_SPR_WR           ( CD_SPR_WR ),
+	.CD_PCM_RD           ( CD_PCM_RD ),
+	.CD_PCM_WR           ( CD_PCM_WR ),
 
 	.SYSTEM_ROMS         ( SYSTEM_ROMS ),
 	.SFIX_ADDR           ( SFIX_ADDR ),
@@ -728,21 +843,24 @@ mist_video #(.COLOR_DEPTH(6), .SD_HCNT_WIDTH(9), .USE_BLANKS(1'b1)) mist_video(
 	.no_csync       ( no_csync         )
 	);
 
+wire signed [16:0] au_left  = $signed(ch_left ) + $signed(CD_AUDIO_L);
+wire signed [16:0] au_right = $signed(ch_right) + $signed(CD_AUDIO_R);
+
 dac #(
-	.C_bits(16))
+	.C_bits(17))
 dacl(
 	.clk_i(CLK_48M),
 	.res_n_i(1),
-	.dac_i({~ch_left[15], ch_left[14:0]}),
+	.dac_i({~au_left[16], au_left[15:0]}),
 	.dac_o(AUDIO_L)
 	);
 
 dac #(
-	.C_bits(16))
+	.C_bits(17))
 dacr(
 	.clk_i(CLK_48M),
 	.res_n_i(1),
-	.dac_i({~ch_right[15], ch_right[14:0]}),
+	.dac_i({~au_right[16], au_right[15:0]}),
 	.dac_o(AUDIO_R)
 	);
 	

@@ -20,24 +20,6 @@
 //  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //============================================================================
 
-// Current status:
-// Neo CD CD check ok but crashes when loading. No more video glitches.
-
-// How about not using a cache at all and DMAing directly from the data fed by the HPS ?
-// The "sector ready" IRQ could be triggered just when a sector is requested, and the actual transfer
-// could be done when the system ROM starts up the DMA transfer ?
-
-// Neo CD times 12/05/2019:
-// SECTOR_READY goes high at SECTOR_TIMER == 430631
-// So it takes 600000-430631=169369 ticks to get a sector from HPS
-// 169369/120M=1.41ms (1451 kB/s)
-// DMA copy: 215 ticks for 10 bytes
-// So 215/120M/10=179.17ns per byte (5450 kB/s)
-
-// Neo CD times 11/05/2019:
-// DMA copy: 616 ticks for 10 bytes
-// So 215/120M/10=513.3ns per byte (1902 kB/s)
-
 module neogeo_top
 (
 	input         CLK_48M,
@@ -45,7 +27,6 @@ module neogeo_top
 
 	input   [1:0] SYSTEM_TYPE,
 	input         VIDEO_MODE,
-	input   [1:0] CD_REGION,
 	input         MEMCARD_EN,
 	input   [2:0] DIPSW,
 	input         COIN1,
@@ -85,6 +66,25 @@ module neogeo_top
 	input  [15:0] MEMCARD_DIN,
 	output [15:0] MEMCARD_DOUT,
 
+	// CD
+	input   [1:0] CD_REGION_SEL,
+	input   [1:0] CD_SPEED,
+	input         CD_LID,
+
+	input         CD_DATA_DOWNLOAD,
+	input         CD_DATA_WR,
+	output        CD_DATA_WR_READY,
+	input         CDDA_WR,
+	output        CDDA_WR_READY,
+	input  [15:0] CD_DATA_DIN,
+	input  [11:1] CD_DATA_ADDR,
+	input  [39:0] CDD_STATUS_IN,
+	input         CDD_STATUS_LATCH,
+	output [39:0] CDD_COMMAND_DATA,
+	output        CDD_COMMAND_SEND,
+	output [15:0] CD_AUDIO_L,
+	output [15:0] CD_AUDIO_R,
+
 	// external RAM/ROM signals
 	output [14:0] SLOW_SCB1_VRAM_ADDR,
 	input  [15:0] SLOW_SCB1_VRAM_DATA_IN,
@@ -102,19 +102,25 @@ module neogeo_top
 
 	output [23:0] P2ROM_ADDR,
 	input  [15:0] PROM_DATA,
+	output [15:0] PROM_DOUT,
+	output  [1:0] PROM_DS,
 	input         PROM_DATA_READY,
 	output        ROM_RD,
 	output        PORT_RD,
 	output        SROM_RD,
-
-	output [15:0] RAM_ADDR,
-	output [15:0] RAM_DATA,
-	input  [15:0] RAM_Q,
-	input         RAM_DATA_READY,
-	output  [1:0] WRAM_WE,
-	output  [1:0] WRAM_RD,
-	output  [1:0] SRAM_WE,
-	output  [1:0] SRAM_RD,
+	output        WRAM_WE,
+	output        WRAM_RD,
+	output        SRAM_WE,
+	output        SRAM_RD,
+	output        CD_EXT_RD, // CD $000000~$1FFFFF
+	output        CD_EXT_WR,
+	output        CD_FIX_RD,
+	output        CD_FIX_WR,
+	output        CD_Z80_WR,
+	output        CD_SPR_RD,
+	output        CD_SPR_WR,
+	output        CD_PCM_RD,
+	output        CD_PCM_WR,
 
 	output        SYSTEM_ROMS,
 
@@ -147,12 +153,20 @@ assign RSOUND = snd_right;
 
 wire SYSTEM_MVS = (SYSTEM_TYPE == 2'd1);
 wire SYSTEM_CDx = SYSTEM_TYPE[1];
+wire SYSTEM_CDZ = (SYSTEM_TYPE == 2'd3);
 
 wire nRESET = ~RESET;
 
 assign ROM_RD = ~nROMOE;
 assign PORT_RD = ~nPORTOE;
 assign SROM_RD = ~nSROMOE;
+assign CD_FIX_RD = CD_TR_RD_FIX;
+assign CD_FIX_WR = CD_TR_WR_FIX;
+assign CD_Z80_WR = CD_TR_WR_Z80;
+assign CD_SPR_RD = CD_TR_RD_SPR;
+assign CD_SPR_WR = CD_TR_WR_SPR;
+assign CD_PCM_RD = CD_TR_RD_PCM;
+assign CD_PCM_WR = CD_TR_WR_PCM;
 
 reg CLK_EN_24M_N, CLK_EN_24M_P;
 always @(posedge CLK_48M) begin
@@ -165,7 +179,7 @@ wire [15:0] snd_right;
 wire [15:0] snd_left;
 
 wire nRESETP, nSYSTEM, CARD_WE, SHADOW, nVEC, nREGEN, nSRAMWEN, PALBNK;
-wire CD_nRESET_Z80 = 1'b1;
+wire CD_nRESET_Z80;
 
 // Clocks
 wire CLK_24M, CLK_12M, CLK_EN_12M, CLK_EN_12M_N, CLK_68KCLK, CLK_68KCLKB, CLK_EN_6MB, CLK_EN_1HB, CLK_EN_4M_P, CLK_EN_4M_N, CLK_EN_68K_P, CLK_EN_68K_N;
@@ -174,7 +188,7 @@ wire CLK_24M, CLK_12M, CLK_EN_12M, CLK_EN_12M_N, CLK_68KCLK, CLK_68KCLKB, CLK_EN
 wire [15:0] M68K_DATA;
 wire [23:1] M68K_ADDR;
 wire A22Z, A23Z;
-wire M68K_RW, nAS, nLDS, nUDS, nDTACK, nHALT, nBR = 1'b1, nBG, nBGACK = 1'b1;
+wire M68K_RW, nAS, nLDS, nUDS, nDTACK, nHALT, nBR, nBG, nBGACK;
 wire [15:0] M68K_DATA_BYTE_MASK;
 wire [15:0] FX68K_DATAIN;
 wire [15:0] FX68K_DATAOUT;
@@ -210,11 +224,11 @@ wire nCRDO, nCRDW, nCRDC;
 wire nCARDWEN, CARDWENB;
 
 // Z80 stuff
-wire [7:0] SDD_IN;
-wire [7:0] SDD_OUT;
+wire [7:0] SDD_IN, SDD_OUT, Z80_SDD_OUT;
 wire [7:0] SDD_RD_C1;
-wire [15:0] SDA;
-wire nSDRD, nSDWR, nMREQ, nIORQ;
+wire [15:0] SDA, Z80_SDA;
+wire nSDRD, nSDWR, nMREQ, nIORQ, nBUSAK;
+wire nZ80_SDRD, nZ80_SDWR, nZ80_MREQ;
 wire nZ80INT, nZ80NMI, nSDW, nSDZ80R, nSDZ80W, nSDZ80CLR;
 wire nSDROM, nSDMRD, nSDMWR, SDRD0, SDRD1, nZRAMCS;
 wire n2610CS, n2610RD, n2610WR;
@@ -295,63 +309,106 @@ always @(posedge CLK_48M) begin
 	end
 end
 
+wire [1:0] CD_REGION;
+always @(CD_REGION_SEL)
+begin
+	// CD Region code remap:
+	// status[11:10] remap
+	// 00            10 US
+	// 01            01 EU
+	// 10            11 JP
+	// 11            00 ASIA
+	case(CD_REGION_SEL)
+		 2'b00: CD_REGION = 2'b10;
+		 2'b01: CD_REGION = 2'b01;
+		 2'b10: CD_REGION = 2'b11;
+		 2'b11: CD_REGION = 2'b00;
+	endcase
+end
+
 wire [2:0] CD_TR_AREA;	// Transfer area code
 wire [15:0] CD_TR_WR_DATA;
 wire [19:1] CD_TR_WR_ADDR;
 wire [1:0] CD_BANK_SPR;
 
 wire CD_TR_WR_SPR, CD_TR_WR_PCM, CD_TR_WR_Z80, CD_TR_WR_FIX;
+wire CD_TR_RD_SPR, CD_TR_RD_PCM, CD_TR_RD_FIX, CD_TR_RD_Z80;
+wire CD_USE_SPR, CD_USE_FIX, CD_USE_Z80;
+wire CD_UPLOAD_EN;
 wire CD_BANK_PCM;
 wire CD_IRQ;
-wire DMA_RUNNING = 1'b0, DMA_WR_OUT, DMA_RD_OUT;
+wire CD_VBLANK_IRQ_EN;
+wire DMA_RUNNING, DMA_WR_OUT, DMA_RD_OUT;
 wire [15:0] DMA_DATA_OUT;
 wire [23:0] DMA_ADDR_IN;
 wire [23:0] DMA_ADDR_OUT;
+wire [15:0] DMA_DATA_IN;
 
-wire DMA_SDRAM_BUSY;
-//wire PROM_DATA_READY = 1'b1;
-/*
-cd_sys cdsystem(
+wire DMA_SDRAM_BUSY = (CD_EXT_RD | CD_EXT_WR | CD_TR_RD_FIX | CD_TR_WR_FIX | CD_TR_WR_Z80 | CD_TR_RD_SPR | CD_TR_WR_SPR | CD_TR_RD_PCM | CD_TR_WR_PCM) ? ~PROM_DATA_READY :
+                  CD_TR_RD_Z80 ? ~nZ80WAIT : 1'b0;
+
+wire CDDA_CLK;
+CEGen CEGEN_CDDA_CLK
+(
+	.CLK(CLK_48M),
+	.RST_N(nRESET),
+	.IN_CLK(48000000),
+	.OUT_CLK(44100),
+	.CE(CDDA_CLK)
+);
+
+cd_sys #(.MCLK(48000000)) cdsystem(
 	.nRESET(nRESET),
-	.clk_sys(clk_sys), .CLK_68KCLK(CLK_68KCLK),
+	.clk_sys(CLK_48M), .CLK_68KCLK_EN(CLK_EN_68K_P),
 	.M68K_ADDR(M68K_ADDR), .M68K_DATA(M68K_DATA), .A22Z(A22Z), .A23Z(A23Z),
 	.nLDS(nLDS), .nUDS(nUDS), .M68K_RW(M68K_RW), .nAS(nAS), .nDTACK(nDTACK_ADJ),
 	.nBR(nBR), .nBG(nBG), .nBGACK(nBGACK),
-	.SYSTEM_TYPE(SYSTEM_TYPE),
+	.SYSTEM_CDx(SYSTEM_CDx),
 	.CD_REGION(CD_REGION),
-	.CD_LID(status[15]),	// CD lid state (DEBUG)
+	.CD_SPEED(CD_SPEED),
+	.CD_LID(CD_LID ^ SYSTEM_CDZ),	// CD lid state (DEBUG)
 	.CD_VIDEO_EN(CD_VIDEO_EN), .CD_FIX_EN(CD_FIX_EN), .CD_SPR_EN(CD_SPR_EN),
 	.CD_nRESET_Z80(CD_nRESET_Z80),
-	.CD_TR_WR_SPR(CD_TR_WR_SPR), .CD_TR_WR_PCM(CD_TR_WR_PCM),
-	.CD_TR_WR_Z80(CD_TR_WR_Z80), .CD_TR_WR_FIX(CD_TR_WR_FIX),
+	.CD_TR_RD_SPR(CD_TR_RD_SPR), .CD_TR_WR_SPR(CD_TR_WR_SPR),
+	.CD_TR_RD_PCM(CD_TR_RD_PCM), .CD_TR_WR_PCM(CD_TR_WR_PCM),
+	.CD_TR_RD_FIX(CD_TR_RD_FIX), .CD_TR_WR_FIX(CD_TR_WR_FIX),
+	.CD_TR_RD_Z80(CD_TR_RD_Z80), .CD_TR_WR_Z80(CD_TR_WR_Z80), 
+	.CD_USE_FIX(CD_USE_FIX), .CD_USE_SPR(CD_USE_SPR),
+	.CD_USE_Z80(CD_USE_Z80),
 	.CD_TR_AREA(CD_TR_AREA),
 	.CD_BANK_SPR(CD_BANK_SPR), .CD_BANK_PCM(CD_BANK_PCM),
 	.CD_TR_WR_DATA(CD_TR_WR_DATA), .CD_TR_WR_ADDR(CD_TR_WR_ADDR),
+	.CD_UPLOAD_EN(CD_UPLOAD_EN),
 	.CD_IRQ(CD_IRQ), .IACK(IACK),
-	.sd_req_type(sd_req_type),
-	.sd_rd(sd_rd[1]), .sd_ack(sd_ack[1]), .sd_buff_wr(sd_buff_wr),
-	.sd_buff_dout(sd_buff_dout), .sd_lba(sd_lba[1]),
+	.CD_VBLANK_IRQ_EN(CD_VBLANK_IRQ_EN),
+	.CDD_STATUS_IN(CDD_STATUS_IN), .CDD_STATUS_LATCH(CDD_STATUS_LATCH),
+	.CDD_COMMAND_DATA(CDD_COMMAND_DATA), .CDD_COMMAND_SEND(CDD_COMMAND_SEND),
+	.CD_DATA_DOWNLOAD(CD_DATA_DOWNLOAD), .CD_DATA_WR(CD_DATA_WR),
+	.CD_DATA_DIN(CD_DATA_DIN),
+	.CD_DATA_ADDR(CD_DATA_ADDR),
+	.CD_DATA_WR_READY(CD_DATA_WR_READY),
+	.CDDA_RD(CDDA_CLK), .CDDA_WR(CDDA_WR),
+	.CDDA_WR_READY(CDDA_WR_READY),
+	.CD_AUDIO_L(CD_AUDIO_L), .CD_AUDIO_R(CD_AUDIO_R),
 	.DMA_RUNNING(DMA_RUNNING),
-	.DMA_DATA_IN(PROM_DATA), .DMA_DATA_OUT(DMA_DATA_OUT),
+	.DMA_DATA_IN(DMA_DATA_IN), .DMA_DATA_OUT(DMA_DATA_OUT),
 	.DMA_WR_OUT(DMA_WR_OUT), .DMA_RD_OUT(DMA_RD_OUT),
 	.DMA_ADDR_IN(DMA_ADDR_IN),		// Used for reading
 	.DMA_ADDR_OUT(DMA_ADDR_OUT),	// Used for writing
 	.DMA_SDRAM_BUSY(DMA_SDRAM_BUSY)
 );
-*/
+
 // The P1 zone is writable on the Neo CD
 // Is there a write enable register for it ?
-wire CD_EXT_WR = DMA_RUNNING ? (SYSTEM_CDx & (DMA_ADDR_OUT[23:21] == 3'd0) & DMA_WR_OUT) :	// DMA writes to $000000~$1FFFFF
-						(SYSTEM_CDx & ~|{A23Z, A22Z, M68K_ADDR[21]} & ~M68K_RW & ~nAS);				// CPU writes to $000000~$1FFFFF
-
-wire CD_WR_SDRAM_SIG = SYSTEM_CDx & |{CD_TR_WR_SPR, CD_TR_WR_FIX, CD_EXT_WR};
+assign CD_EXT_WR = DMA_RUNNING ? (SYSTEM_CDx & (DMA_ADDR_OUT[23:21] == 3'd0) & DMA_WR_OUT) :    // DMA writes to $000000~$1FFFFF
+              (SYSTEM_CDx & ~|{A23Z, A22Z, M68K_ADDR[21]} & ~M68K_RW & ~nAS & (~nUDS | ~nLDS)); // CPU writes to $000000~$1FFFFF
 
 wire nROMOE = nROMOEL & nROMOEU;
 wire nPORTOE = nPORTOEL & nPORTOEU;
 
 // CD system work ram is in SDRAM
-wire CD_EXT_RD = DMA_RUNNING ? (SYSTEM_CDx & (DMA_ADDR_IN[23:21] == 3'd0) & DMA_RD_OUT) :		// DMA reads from $000000~$1FFFFF
-										(SYSTEM_CDx & (~nWRL | ~nWRU));											// CPU reads from $100000~$1FFFFF
+assign CD_EXT_RD = DMA_RUNNING ? (SYSTEM_CDx & (DMA_ADDR_IN[23:21] == 3'd0) & DMA_RD_OUT) :     // DMA reads from $000000~$1FFFFF
+                                 (SYSTEM_CDx & (~nWRL | ~nWRU));                                // CPU reads from $100000~$1FFFFF
 
 neo_d0 D0(
 	.CLK(CLK_48M),
@@ -374,23 +431,26 @@ neo_d0 D0(
 	.BNK(BNK)
 );
 
+
 // Re-priority-encode the interrupt lines with the CD_IRQ one (IPL* are active-low)
-// Also swap IPL0 and IPL1 for CD systems
-//                      Cartridge     		CD
-// CD_IRQ IPL1 IPL0		IPL2 IPL1 IPL0		IPL2 IPL1 IPL0
-//    0     1    1		  1    1    1  	  1    1    1	No IRQ
-//    0     1    0        1    1    0		  1    0    1	Vblank
-//    0     0    1        1    0    1		  1    1    0  Timer
-//    0     0    0        1    0    0		  1    0    0	Cold boot
-//    1     x    x        1    1    1  	  0    1    1	CD vectored IRQ
-wire IPL0_OUT = SYSTEM_CDx ? CD_IRQ | IPL1 : IPL0;
-wire IPL1_OUT = SYSTEM_CDx ? CD_IRQ | IPL0 : IPL1;
-wire IPL2_OUT = ~(SYSTEM_CDx & CD_IRQ);
+//
+//  IPL2 IPL1 IPL0    Cartridge        CD
+//    1    1    1     No IRQ           No IRQ
+//    1    1    0     Vblank    (64)   Vblank (68)
+//    1    0    1     Timer     (68)   CD IRQ (54/58)
+//    1    0    0     Cold boot (6C)   Timer  (64)
+//
+wire [1:0] CD_IPL = (!IPL1 & IPL0) ? 2'b00 // Level 3 Timer
+                  : CD_IRQ ? 2'b01         // Level 2 CD IRQ
+                  : (IPL1 & !IPL0) ? 2'b10 // Level 1 VBlank
+                  : 2'b11;
+
+wire [1:0] IPL_OUT = ~SYSTEM_CDx ? { IPL1,IPL0 } : CD_IPL;
 
 // Because of the SDRAM latency, nDTACK is handled differently for ROM zones
 // If the address is in a ROM zone, PROM_DATA_READY is used to extend the normal nDTACK output by NEO-C1
-wire nDTACK_ADJ = ~&{nSROMOE, nROMOE, nPORTOE, ~CD_EXT_RD} ? ~PROM_DATA_READY | nDTACK : 
-                  |(WRAM_RD | WRAM_WE | SRAM_RD | SRAM_WE) ? ~RAM_DATA_READY | nDTACK : nDTACK;
+wire nDTACK_ADJ = ~&{nSROMOE, nROMOE, nPORTOE, ~WRAM_RD, ~WRAM_WE, ~SRAM_RD, ~SRAM_WE, ~CD_EXT_RD, ~CD_EXT_WR, ~CD_TR_RD_FIX, ~CD_TR_WR_FIX, ~CD_TR_WR_Z80, ~CD_TR_RD_SPR, ~CD_TR_WR_SPR, ~CD_TR_RD_PCM, ~CD_TR_WR_PCM} ? ~PROM_DATA_READY | nDTACK :
+                  (CD_TR_RD_Z80) ? ~nZ80WAIT | nDTACK : nDTACK;
 
 cpu_68k M68KCPU(
 	.CLK(CLK_48M),
@@ -401,9 +461,10 @@ cpu_68k M68KCPU(
 	.FX68K_DATAIN(FX68K_DATAIN), .FX68K_DATAOUT(FX68K_DATAOUT),
 	.nLDS(nLDS), .nUDS(nUDS), .nAS(nAS), .M68K_RW(M68K_RW),
 	.nDTACK(nDTACK_ADJ),	// nDTACK
-	.IPL2(IPL2_OUT), .IPL1(IPL1_OUT), .IPL0(IPL0_OUT),
+	.IPL2(1'b1), .IPL1(IPL_OUT[1]), .IPL0(IPL_OUT[0]),
 	.FC2(FC2), .FC1(FC1), .FC0(FC0),
-	.nBG(nBG), .nBR(nBR), .nBGACK(nBGACK)
+	.nBG(nBG), .nBR(nBR), .nBGACK(nBGACK),
+	.SYSTEM_CDx(SYSTEM_CDx)
 );
 
 wire IACK = &{FC2, FC1, FC0};
@@ -416,17 +477,25 @@ assign M68K_DATA = M68K_RW ? 16'bzzzzzzzz_zzzzzzzz : FX68K_DATAOUT;
 always @(posedge CLK_48M)
 	if(!nBITW0 && !M68K_ADDR[6:3]) MS_XY <= M68K_DATA[0];
 
-
-assign FIXD = S2H1 ? SROM_DATA[15:8] : SROM_DATA[7:0];
+assign FIXD = CD_USE_FIX ? 8'bzzzz_zzzz : S2H1 ? SROM_DATA[15:8] : SROM_DATA[7:0];
 
 // Disable ROM read in PORT zone if the game uses a special chip
-assign M68K_DATA = (nROMOE & nSROMOE & |{nPORTOE, CART_CHIP, CART_PCHIP}) ? 16'bzzzzzzzzzzzzzzzz : PROM_DATA;
+assign M68K_DATA = ((nROMOE & nSROMOE & |{nPORTOE, CART_CHIP, CART_PCHIP}) | CD_TR_RD_FIX | CD_TR_RD_PCM) ? 16'bzzzzzzzzzzzzzzzz : PROM_DATA;
 
-assign RAM_ADDR = {M68K_ADDR[15:1], 1'b0};
-assign RAM_DATA = M68K_DATA;
-assign WRAM_WE = ~{nWWU, nWWL};
-assign WRAM_RD = ~{nWRU, nWRL};
-assign {WRAMU_OUT, WRAML_OUT} = RAM_Q;
+assign M68K_DATA = CD_TR_RD_SPR ? PROM_DATA : 16'hzzzz;
+// Output correct FIX byte
+assign M68K_DATA[7:0] = ~CD_TR_RD_FIX ? 8'bzzzz_zzzz : (M68K_ADDR[4] ? PROM_DATA[15:8] : PROM_DATA[7:0]);
+// Output correct PCM byte
+assign M68K_DATA[7:0] = ~CD_TR_RD_PCM ? 8'bzzzz_zzzz : (M68K_ADDR[1] ? PROM_DATA[15:8] : PROM_DATA[7:0]);
+
+assign DMA_DATA_IN = CD_TR_RD_Z80 ? {SDD_IN, SDD_IN} : 
+                     (CD_TR_RD_PCM | CD_TR_RD_FIX) ? (P2ROM_ADDR[0] ? {PROM_DATA[15:8], PROM_DATA[15:8]} : {PROM_DATA[7:0], PROM_DATA[7:0]}) :
+					 PROM_DATA;
+
+
+assign WRAM_WE = ~&{nWWU, nWWL};
+assign WRAM_RD = ~&{nWRU, nWRL};
+assign {WRAMU_OUT, WRAML_OUT} = PROM_DATA;
 
 // 68k work RAM
 /*
@@ -457,7 +526,21 @@ dpram #(15) WRAMU(
 	.wren_b(~nRESET)
 );
 */
-assign P2ROM_ADDR = (!CART_PCHIP) ? {P_BANK, M68K_ADDR[19:1], 1'b0} : 24'bZ;
+wire [23:0] ADDR_MUX = DMA_RUNNING ? (({24{DMA_WR_OUT}} & DMA_ADDR_OUT) | ({24{DMA_RD_OUT}} & DMA_ADDR_IN)) : {3'd0, M68K_ADDR[20:1], 1'b0};
+
+assign P2ROM_ADDR = ({24{(CD_EXT_RD | CD_EXT_WR | SRAM_RD | SRAM_WE | WRAM_RD | WRAM_WE)}} & ADDR_MUX) |
+                    ({24{(CD_TR_RD_FIX | CD_TR_WR_FIX)}} & {ADDR_MUX[17:6], ADDR_MUX[3:1], ~ADDR_MUX[5], ADDR_MUX[4]}) |
+                    ({24{(CD_TR_RD_SPR | CD_TR_WR_SPR)}} & {CD_BANK_SPR, ADDR_MUX[19:7], ADDR_MUX[5:2], ~ADDR_MUX[6], ADDR_MUX[1:0]}) |
+					({24{(CD_TR_RD_PCM | CD_TR_WR_PCM)}} & {CD_BANK_PCM, ADDR_MUX[19:1]}) |
+					({24{CD_TR_WR_Z80}} & ADDR_MUX[16:1]) |
+					({24{(!CART_PCHIP & !(nROMOE & nPORTOE & nSROMOE))}} & {P_BANK, ADDR_MUX[19:1], 1'b0}) |
+					NEO_PVC_P2ROM_ADDR | NEO_SMA_P2ROM_ADDR;
+
+wire [15:0] CD_TR_DOUT = DMA_RUNNING ? DMA_DATA_OUT : M68K_DATA;
+assign PROM_DOUT = (CD_TR_WR_FIX | CD_TR_WR_Z80 | CD_TR_WR_PCM) ? {CD_TR_DOUT[7:0], CD_TR_DOUT[7:0]} : CD_TR_DOUT;
+assign PROM_DS = (CD_TR_WR_FIX | CD_TR_WR_Z80 | CD_TR_WR_PCM) ? {P2ROM_ADDR[0], ~P2ROM_ADDR[0]} :
+                 DMA_RUNNING ? 2'b11 : ~{nUDS, nLDS};
+wire [23:0] NEO_PVC_P2ROM_ADDR;
 
 neo_pvc neo_pvc
 (
@@ -473,8 +556,10 @@ neo_pvc neo_pvc
 	.nPORTOEU(nPORTOEU),
 	.nPORTWEL(nPORTWEL),
 	.nPORTWEU(nPORTWEU),
-	.P2_ADDR(P2ROM_ADDR)
+	.P2_ADDR(NEO_PVC_P2ROM_ADDR)
 );
+
+wire [23:0] NEO_SMA_P2ROM_ADDR;
 
 neo_sma neo_sma
 (
@@ -490,9 +575,8 @@ neo_sma neo_sma
 	.nPORTOEU(nPORTOEU),
 	.nPORTWEL(nPORTWEL),
 	.nPORTWEU(nPORTWEU),
-	.P2_ADDR(P2ROM_ADDR)
+	.P2_ADDR(NEO_SMA_P2ROM_ADDR)
 );
-
 
 // Work RAM or CD extended RAM read
 assign M68K_DATA[7:0]  = nWRL ? 8'bzzzzzzzz : SYSTEM_CDx ? PROM_DATA[7:0]  : WRAML_OUT;
@@ -526,9 +610,9 @@ backup BACKUP(
 assign M68K_DATA[7:0] = (nSRAMOEL | ~SYSTEM_MVS) ? 8'bzzzzzzzz : SRAM_OUT[7:0];
 assign M68K_DATA[15:8] = (nSRAMOEU | ~SYSTEM_MVS) ? 8'bzzzzzzzz : SRAM_OUT[15:8];
 
-assign SRAM_WE = ~{nBWU, nBWL};
-assign SRAM_RD = ~{nSRAMOEU, nSRAMOEL} & {2{SYSTEM_MVS}};
-assign SRAM_OUT = RAM_Q;
+assign SRAM_WE = ~&{nBWU, nBWL};
+assign SRAM_RD = ~&{nSRAMOEU, nSRAMOEL} & SYSTEM_MVS;
+assign SRAM_OUT = PROM_DATA;
 
 // Memory card
 assign {nCD1, nCD2} = {2{~MEMCARD_EN & ~SYSTEM_CDx}};	// Always plugged in CD systems
@@ -559,7 +643,7 @@ assign CROM_RD = PCK1 | PCK2;
 
 zmc ZMC(
 	.CLK(CLK_48M),
-	.nRESET(nRESET),
+	.nRESET(nRESET & ~SYSTEM_CDx),
 	.nSDRD0(SDRD0),
 	.SDA_L(SDA[1:0]), .SDA_U(SDA[15:8]),
 	.MA(MA)
@@ -724,7 +808,7 @@ neo_c1 C1(
 	.SYSTEM_TYPE(SYSTEM_TYPE)
 );
 
-wire [31:0] CR = CROM_DATA;
+wire [31:0] CR = CD_USE_SPR ? {32{1'bz}} : CROM_DATA;
 
 neo_zmc2 ZMC2(
 	.CLK(CLK_48M),
@@ -791,6 +875,7 @@ assign SDD_IN = (~nSDZ80R) ? SDD_RD_C1 :
 					8'b00000000;
 
 wire Z80_nRESET = SYSTEM_CDx ? nRESET & CD_nRESET_Z80 : nRESET;
+wire CD_HAS_Z80_BUS = (CD_USE_Z80 & ~(nBUSAK & Z80_nRESET));
 
 wire [7:0] M1_ROM_DATA = Z80_ROM_DATA;
 wire nZ80WAIT = Z80_ROM_RD ? Z80_ROM_READY : 1'b1;
@@ -802,17 +887,24 @@ cpu_z80 Z80CPU(
 	.CLK4P_EN(CLK_EN_4M_P),
 	.CLK4N_EN(CLK_EN_4M_N),
 	.nRESET(Z80_nRESET),
-	.SDA(SDA), .SDD_IN(SDD_IN), .SDD_OUT(SDD_OUT),
-	.nIORQ(nIORQ),	.nMREQ(nMREQ),	.nRD(nSDRD), .nWR(nSDWR),
+	.SDA(Z80_SDA), .SDD_IN(SDD_IN), .SDD_OUT(Z80_SDD_OUT),
+	.nIORQ(nIORQ),	.nMREQ(nZ80_MREQ),	.nRD(nZ80_SDRD), .nWR(nZ80_SDWR),
+	.nBUSRQ(~CD_USE_Z80), .nBUSAK(nBUSAK),
 	.nINT(nZ80INT), .nNMI(nZ80NMI), .nWAIT(nZ80WAIT)
 );
 
+assign { SDA, SDD_OUT } = ~CD_HAS_Z80_BUS ? { Z80_SDA, Z80_SDD_OUT } : { M68K_ADDR[16:1], M68K_DATA[7:0] };
+assign { nSDRD, nSDWR } = ~CD_HAS_Z80_BUS ? { nZ80_SDRD, nZ80_SDWR } : { ~CD_TR_RD_Z80, ~CD_TR_WR_Z80 };
+assign { nMREQ } = ~CD_HAS_Z80_BUS ? nZ80_MREQ : ~(CD_TR_RD_Z80 | CD_TR_WR_Z80);
+
+assign M68K_DATA[7:0] = ~(CD_HAS_Z80_BUS & CD_TR_RD_Z80) ? 8'bzzzz_zzzz : (SDD_IN);
+
 wire [7:0] YM2610_DOUT;
 assign ADPCMA_RD = ~nSDROE;
-assign ADPCMB_RD = ~nSDPOE;
+assign ADPCMB_RD = ~nSDPOE & ~SYSTEM_CDx;
 
 jt10 YM2610(
-	.rst(~nRESET),
+	.rst(~Z80_nRESET),
 	.clk(CLK_48M), .cen((CLK_EN_4M_P | CLK_EN_4M_N) & ADPCMA_DATA_READY & ADPCMB_DATA_READY),
 	.addr(SDA[1:0]),
 	.din(SDD_OUT), .dout(YM2610_DOUT),
@@ -820,7 +912,7 @@ jt10 YM2610(
 	.irq_n(nZ80INT),
 	.adpcma_addr(ADPCMA_ADDR), .adpcma_bank(ADPCMA_BANK), .adpcma_roe_n(nSDROE), .adpcma_data(ADPCMA_DATA),
 	.adpcmb_addr(ADPCMB_ADDR), .adpcmb_roe_n(nSDPOE), .adpcmb_data(SYSTEM_CDx ? 8'h08 : ADPCMB_DATA),	// CD has no ADPCM-B
-	.snd_right(snd_right), .snd_left(snd_left),/* .snd_enable(4'b1111),*/ .ch_enable(6'b111111)
+	.snd_right(snd_right), .snd_left(snd_left), .ch_enable(6'b111111)
 );
 
 // For Neo CD only
@@ -840,6 +932,7 @@ lspc2_a2_sync	LSPC(
 	.LSPC_EN_4M_P(CLK_EN_4M_P), .LSPC_EN_4M_N(CLK_EN_4M_N),
 	.M68K_ADDR(M68K_ADDR[3:1]), .M68K_DATA(M68K_DATA),
 	.IPL0(IPL0), .IPL1(IPL1),
+	.VBLANK_IRQ_EN(CD_VBLANK_IRQ_EN | ~SYSTEM_CDx),
 	.LSPOE(nLSPOE), .LSPWE(nLSPWE),
 	.PBUS_OUT(PBUS[15:0]), .PBUS_IO(PBUS[23:16]),
 	.nPBUS_OUT_EN(nPBUS_OUT_EN),
@@ -871,6 +964,8 @@ lspc2_a2_sync	LSPC(
 );
 
 wire nRESET_WD;
+wire DOGE = SYSTEM_CDx ? ~CD_UPLOAD_EN : 1'b1; // UPLOAD_EN disables Watchdog?
+
 neo_b1 B1(
 	.CLK(CLK_48M),	.CLK_EN_6MB(CLK_EN_6MB), .CLK_EN_1HB(CLK_EN_1HB),
 	.S1H1(S1H1),
@@ -886,6 +981,7 @@ neo_b1 B1(
 	.TMS0(CHG), .LD1(LD1), .LD2(LD2), .SS1(SS1), .SS2(SS2),
 	.PA(PAL_RAM_ADDR),
 	.EN_FIX(FIX_EN),
+	.DOGE(DOGE),
 	.nRST(nRESET),
 	.nRESET(nRESET_WD)
 );
@@ -909,9 +1005,9 @@ wire [7:0] B8 = B6[6] ? 8'd0 : {B6[5:0],  B6[4:3]};
 always @(posedge CLK_48M) begin
 	reg CHBL2;
 	if (CLK_EN_6MB) begin
-		RED   <= ~SHADOW ? R8 : {1'b0, R8[7:1]};
-		GREEN <= ~SHADOW ? G8 : {1'b0, G8[7:1]};
-		BLUE  <= ~SHADOW ? B8 : {1'b0, B8[7:1]};
+		RED   <= VIDEO_EN ? (~SHADOW ? R8 : {1'b0, R8[7:1]}) : 8'd0;
+		GREEN <= VIDEO_EN ? (~SHADOW ? G8 : {1'b0, G8[7:1]}) : 8'd0;
+		BLUE  <= VIDEO_EN ? (~SHADOW ? B8 : {1'b0, B8[7:1]}) : 8'd0;
 		CHBL2 <= CHBL;
 		HBLANK <= CHBL2;
 		VBLANK <= ~nBNKB;

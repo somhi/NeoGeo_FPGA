@@ -52,15 +52,10 @@ module sdram_2w_cl2 (
 	// cpu1 rom/ram
 	input      [23:1] cpu1_rom_addr,
 	input             cpu1_rom_cs,
+	input       [1:0] cpu1_rom_ds, // for write
+	input      [15:0] cpu1_rom_d,
 	output reg [15:0] cpu1_rom_q,
 	output reg        cpu1_rom_valid,
-
-	input      [23:1] cpu1_ram_addr,
-	input             cpu1_ram_we,
-	input       [1:0] cpu1_ram_ds,
-	input      [15:0] cpu1_ram_d,
-	output reg [15:0] cpu1_ram_q,
-	output reg        cpu1_ram_valid,
 
 	// cpu2 rom
 	input      [23:1] cpu2_rom_addr,
@@ -141,9 +136,9 @@ cmd issued  registered
  2 CAS0
  3 RAS1
  4          ras1
- 5 CAS1     data0 returned
- 6          cas1 - data0 returned if CAS1 is not write
- 7
+ 5 CAS1(r)  data0 returned
+ 6 CAS1(w)  cas1(r) - data0 returned
+ 7          cas1(w)
 */
 
 localparam STATE_RAS0      = 3'd0;   // first state in cycle
@@ -234,7 +229,6 @@ reg        sampleb_req_state;
 
 localparam PORT_NONE     = 3'd0;
 localparam PORT_CPU1_ROM = 3'd1;
-localparam PORT_CPU1_RAM = 3'd2;
 localparam PORT_CPU2_ROM = 3'd3;
 localparam PORT_SFIX     = 3'd4;
 localparam PORT_VRAM     = 3'd5;
@@ -287,14 +281,9 @@ always @(*) begin
 	end else if (cpu1_rom_cs && !cpu1_rom_valid) begin
 		next_port[0] = PORT_CPU1_ROM;
 		addr_next[0][23:1] = cpu1_rom_addr[23:1];
-		ds_next[0] = 2'b11;
-		{ oe_next[0], we_next[0] } = 2'b10;
-	end else if (|cpu1_ram_ds && !cpu1_ram_valid) begin
-		next_port[0] = PORT_CPU1_RAM;
-		addr_next[0][23:1] = cpu1_ram_addr[23:1];
-		ds_next[0] = cpu1_ram_ds;
-		{ oe_next[0], we_next[0] } = { ~cpu1_ram_we, cpu1_ram_we };
-		din_next[0] = cpu1_ram_d;
+		ds_next[0] = |cpu1_rom_ds ? cpu1_rom_ds : 2'b11;
+		{ oe_next[0], we_next[0] } = {~|cpu1_rom_ds, |cpu1_rom_ds};
+		din_next[0] = cpu1_rom_d;
 	end else if (cpu2_rom_cs && !cpu2_rom_valid) begin
 		next_port[0] = PORT_CPU2_ROM;
 		addr_next[0][23:1] = cpu2_rom_addr[23:1];
@@ -347,7 +336,6 @@ always @(posedge clk) begin
 
 	if(init) begin
 		cpu1_rom_valid <= 0;
-		cpu1_ram_valid <= 0;
 		cpu2_rom_valid <= 0;
 		sfix_valid <= 0;
 		// initialization takes place at the end of the reset phase
@@ -370,7 +358,6 @@ always @(posedge clk) begin
 		end
 	end else begin
 		if (!cpu1_rom_cs) cpu1_rom_valid <= 0;
-		if (~|cpu1_ram_ds) cpu1_ram_valid <= 0;
 		if (!cpu2_rom_cs) cpu2_rom_valid <= 0;
 		if (!sfix_cs) sfix_valid <= 0;
 
@@ -437,7 +424,6 @@ always @(posedge clk) begin
 			{ SDRAM_DQMH, SDRAM_DQML } <= ~ds[0];
 			// early ack for nDTACK/nWAIT
 			if (port[0] == PORT_CPU1_ROM) cpu1_rom_valid <= 1;
-			if (port[0] == PORT_CPU1_RAM) cpu1_ram_valid <= 1;
 			if (port[0] == PORT_CPU2_ROM) cpu2_rom_valid <= 1;
 			if (we_latch[0]) begin
 				SDRAM_DQ <= din_latch[0];
@@ -454,7 +440,8 @@ always @(posedge clk) begin
 			SDRAM_BA <= addr_latch[0][25:24];
 		end
 
-		if(t == STATE_CAS1 && (we_latch[1] || oe_latch[1])) begin
+		//if(t == STATE_CAS1 && (we_latch[1] || oe_latch[1])) begin
+		if((t == STATE_CAS1 && oe_latch[1]) || (t == STATE_CAS1+1 && we_latch[1])) begin
 			sd_cmd <= we_latch[1]?CMD_WRITE:CMD_READ;
 			{ SDRAM_DQMH, SDRAM_DQML } <= ~ds[1];
 			if (we_latch[1]) begin
@@ -468,14 +455,13 @@ always @(posedge clk) begin
 			SDRAM_BA <= addr_latch[1][24:23] == 2'b11 ? 2'b10 : addr_latch[1][24:23];
 		end
 
-		if(t == STATE_DS0b && oe_latch[0] && !we_next[1]) { SDRAM_DQMH, SDRAM_DQML } <= 0;
+		if(t == STATE_DS0b && oe_latch[0]) { SDRAM_DQMH, SDRAM_DQML } <= 0;
 
 		// Data returned
 		if(t == STATE_READ0 && oe_latch[0]) begin
 			case(port[0])
 				PORT_REQ:  begin port1_q <= sd_din; port1_ack <= port1_req; end
 				PORT_CPU1_ROM: begin cpu1_rom_q <= sd_din; end
-				PORT_CPU1_RAM: begin cpu1_ram_q <= sd_din; end
 				PORT_CPU2_ROM: begin cpu2_rom_q <= sd_din; end
 				PORT_SFIX: begin sfix_q[15:0] <= sd_din; sfix_valid <= 1; end
 				PORT_VRAM: if (vram_sel_latch) vram_q2 <= sd_din; else vram_q1[15:0] <= sd_din;

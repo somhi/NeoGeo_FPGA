@@ -2,6 +2,7 @@ set_global_assignment -name QIP_FILE [file join $::quartus(qip_path) jt12/target
 set_global_assignment -name QIP_FILE [file join $::quartus(qip_path) video_sync/video.qip]
 set_global_assignment -name QIP_FILE [file join $::quartus(qip_path) io_sync/io.qip]
 set_global_assignment -name QIP_FILE [file join $::quartus(qip_path) cells/cells.qip]
+set_global_assignment -name QIP_FILE [file join $::quartus(qip_path) cd/cd.qip]
 set_global_assignment -name QIP_FILE [file join $::quartus(qip_path) mem/bram.qip]
 set_global_assignment -name QIP_FILE [file join $::quartus(qip_path) mem/dram.qip]
 set_global_assignment -name QIP_FILE [file join $::quartus(qip_path) cpu/FX68K/fx68k.qip]

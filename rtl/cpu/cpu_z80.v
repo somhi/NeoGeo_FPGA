@@ -27,6 +27,8 @@ module cpu_z80(
 	output reg nIORQ,
 	output nMREQ,
 	output reg nRD, nWR,
+	input nBUSRQ,
+	output nBUSAK,
 	input nINT, nNMI, nWAIT
 );
 
@@ -46,7 +48,8 @@ module cpu_z80(
 		.RD_n(nRD),
 		.WR_n(nWR),
 		.RFSH_n(RFSH_n),
-		.BUSRQ_n(1'b1),
+		.BUSRQ_n(nBUSRQ),
+		.BUSAK_n(nBUSAK),
 		.A(SDA),
 		.DI(SDD_IN),
 		.DO(SDD_OUT)

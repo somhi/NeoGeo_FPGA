@@ -33,7 +33,7 @@ module neo_sma
 	output [23:0] P2_ADDR
 );
 
-assign P2_ADDR = ENABLE ? bank + {M68K_ADDR,1'b0} : 24'bZ;
+assign P2_ADDR = ENABLE ? bank + {M68K_ADDR,1'b0} : 24'h0;
 
 wire ENABLE   = (TYPE>=3);
 wire BANK_SEL = (M68K_ADDR == BANK_ADDR);

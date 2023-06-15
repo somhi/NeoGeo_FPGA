@@ -33,7 +33,7 @@ module neo_pvc
 	output [23:0] P2_ADDR
 );
 
-assign P2_ADDR = ENABLE ? bank + {M68K_ADDR,1'b0} : 24'bZ;
+assign P2_ADDR = ENABLE ? bank + {M68K_ADDR,1'b0} : 24'h0;
 
 assign M68K_DATA[7:0]  = (nPORTOEL | ~ENABLE) ? 8'bZ          :
 								              PORT_RD ? PORT_DO[7:0]  :
