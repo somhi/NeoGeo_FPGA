@@ -702,7 +702,7 @@ neogeo_top neogeo_top (
 	.ADPCMB_DATA_READY   ( ADPCMB_DATA_READY )
 );
 
-mist_video #(.COLOR_DEPTH(6), .SD_HCNT_WIDTH(10), .USE_BLANKS(1'b1)) mist_video(
+mist_video #(.COLOR_DEPTH(6), .SD_HCNT_WIDTH(9), .USE_BLANKS(1'b1)) mist_video(
 	.clk_sys        ( CLK_48M          ),
 	.SPI_SCK        ( SPI_SCK          ),
 	.SPI_SS3        ( SPI_SS3          ),
@@ -720,7 +720,7 @@ mist_video #(.COLOR_DEPTH(6), .SD_HCNT_WIDTH(10), .USE_BLANKS(1'b1)) mist_video(
 	.VGA_VS         ( VGA_VS           ),
 	.VGA_HS         ( VGA_HS           ),
 	.rotate         ( { orientation[1], rotate } ),
-	.ce_divider     ( 3'd0             ),
+	.ce_divider     ( 3'd7             ),
 	.scandoubler_disable( scandoublerD ),
 	.scanlines      ( scanlines        ),
 	.blend          ( blend            ),
