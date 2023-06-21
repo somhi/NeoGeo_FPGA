@@ -247,7 +247,7 @@ localparam PORT_REQ      = 3'd7;
 reg  [2:0] next_port[2];
 reg  [2:0] port[2];
 
-reg        refresh;
+reg  [2:0] refresh;
 reg [23:0] refresh_cnt;
 wire       need_refresh = (refresh_cnt >= RFRSH_CYCLES);
 
@@ -260,7 +260,7 @@ always @(*) begin
 	din_next[0] = 0;
 	addr_next[0][25:24] = 3; //BA
 
-	if (refresh) begin
+	if (&refresh) begin
 		// nothing
 	end else if (port1_req ^ port1_state) begin
 		next_port[0] = PORT_REQ;
@@ -398,6 +398,7 @@ always @(posedge clk) begin
 
 		// bank 2,3
 		if(t == STATE_RAS1) begin
+			if (|refresh) refresh <= refresh - 1'd1;
 			refresh <= 1'b0;
 			addr_latch[1] <= addr_next[1];
 			{ oe_latch[1], we_latch[1] } <= { oe_next[1], we_next[1] };
@@ -417,8 +418,13 @@ always @(posedge clk) begin
 				PORT_SAMPLEA: samplea_req_state <= samplea_req;
 				PORT_SAMPLEB: sampleb_req_state <= sampleb_req;
 				default:
-					if (refresh_en && need_refresh && !refresh && !we_latch[0] && !oe_latch[0]) begin
-						refresh <= 1'b1;
+					if (refresh_en && need_refresh && ~|refresh && !we_latch[0] && !oe_latch[0]) begin
+						// refresh in RFRSH_CYCLES interval
+						// suppress refresh if:
+						// - a pendig access in the other bank
+						// - refresh is not enabled
+						// - 7 full cycles after the previous refresh
+						refresh <= 3'd7;
 						refresh_cnt <= refresh_cnt - RFRSH_CYCLES;
 						sd_cmd <= CMD_AUTO_REFRESH;
 					end
