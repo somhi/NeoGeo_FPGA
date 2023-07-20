@@ -59,7 +59,10 @@ module sdram_2w_cl2 (
 
 	// cpu2 rom
 	input      [23:1] cpu2_rom_addr,
-	input             cpu2_rom_cs,
+	input             cpu2_rom_rd,
+	input             cpu2_rom_wr,
+	input       [1:0] cpu2_rom_ds,
+	input       [7:0] cpu2_rom_d,
 	output reg [15:0] cpu2_rom_q,
 	output reg        cpu2_rom_valid,
 
@@ -226,6 +229,7 @@ reg        lo_rom_req_state;
 reg        sp_req_state;
 reg        samplea_req_state;
 reg        sampleb_req_state;
+wire       cpu2_rom_cs = cpu2_rom_rd | cpu2_rom_wr;
 
 localparam PORT_NONE     = 3'd0;
 localparam PORT_CPU1_ROM = 3'd1;
@@ -287,8 +291,9 @@ always @(*) begin
 	end else if (cpu2_rom_cs && !cpu2_rom_valid) begin
 		next_port[0] = PORT_CPU2_ROM;
 		addr_next[0][23:1] = cpu2_rom_addr[23:1];
-		ds_next[0] = 2'b11;
-		{ oe_next[0], we_next[0] } = 2'b10;
+		din_next[0] = {cpu2_rom_d, cpu2_rom_d};
+		ds_next[0] = cpu2_rom_ds;
+		{ oe_next[0], we_next[0] } = {cpu2_rom_rd, ~cpu2_rom_rd};
 	end
 end
 

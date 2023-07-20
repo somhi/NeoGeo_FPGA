@@ -116,7 +116,6 @@ module neogeo_top
 	output        CD_EXT_WR,
 	output        CD_FIX_RD,
 	output        CD_FIX_WR,
-	output        CD_Z80_WR,
 	output        CD_SPR_RD,
 	output        CD_SPR_WR,
 	output        CD_PCM_RD,
@@ -133,7 +132,9 @@ module neogeo_top
 	output        CROM_RD,
 
 	output [18:0] Z80_ROM_ADDR,
+	output  [7:0] Z80_ROM_DOUT,
 	output        Z80_ROM_RD,
+	output        Z80_ROM_WR,
 	input   [7:0] Z80_ROM_DATA,
 	input         Z80_ROM_READY,
 
@@ -162,7 +163,6 @@ assign PORT_RD = ~nPORTOE;
 assign SROM_RD = ~nSROMOE;
 assign CD_FIX_RD = CD_TR_RD_FIX;
 assign CD_FIX_WR = CD_TR_WR_FIX;
-assign CD_Z80_WR = CD_TR_WR_Z80;
 assign CD_SPR_RD = CD_TR_RD_SPR;
 assign CD_SPR_WR = CD_TR_WR_SPR;
 assign CD_PCM_RD = CD_TR_RD_PCM;
@@ -344,8 +344,8 @@ wire [23:0] DMA_ADDR_IN;
 wire [23:0] DMA_ADDR_OUT;
 wire [15:0] DMA_DATA_IN;
 
-wire DMA_SDRAM_BUSY = (CD_EXT_RD | CD_EXT_WR | CD_TR_RD_FIX | CD_TR_WR_FIX | CD_TR_WR_Z80 | CD_TR_RD_SPR | CD_TR_WR_SPR | CD_TR_RD_PCM | CD_TR_WR_PCM) ? ~PROM_DATA_READY :
-                  CD_TR_RD_Z80 ? ~nZ80WAIT : 1'b0;
+wire DMA_SDRAM_BUSY = (CD_EXT_RD | CD_EXT_WR | CD_TR_RD_FIX | CD_TR_WR_FIX | CD_TR_RD_SPR | CD_TR_WR_SPR | CD_TR_RD_PCM | CD_TR_WR_PCM) ? ~PROM_DATA_READY :
+                  (CD_TR_WR_Z80 | CD_TR_RD_Z80) ? ~nZ80WAIT : 1'b0;
 
 wire CDDA_CLK;
 CEGen CEGEN_CDDA_CLK
@@ -449,8 +449,8 @@ wire [1:0] IPL_OUT = ~SYSTEM_CDx ? { IPL1,IPL0 } : CD_IPL;
 
 // Because of the SDRAM latency, nDTACK is handled differently for ROM zones
 // If the address is in a ROM zone, PROM_DATA_READY is used to extend the normal nDTACK output by NEO-C1
-wire nDTACK_ADJ = ~&{nSROMOE, nROMOE, nPORTOE, ~WRAM_RD, ~WRAM_WE, ~SRAM_RD, ~SRAM_WE, ~CD_EXT_RD, ~CD_EXT_WR, ~CD_TR_RD_FIX, ~CD_TR_WR_FIX, ~CD_TR_WR_Z80, ~CD_TR_RD_SPR, ~CD_TR_WR_SPR, ~CD_TR_RD_PCM, ~CD_TR_WR_PCM} ? ~PROM_DATA_READY | nDTACK :
-                  (CD_TR_RD_Z80) ? ~nZ80WAIT | nDTACK : nDTACK;
+wire nDTACK_ADJ = ~&{nSROMOE, nROMOE, nPORTOE, ~WRAM_RD, ~WRAM_WE, ~SRAM_RD, ~SRAM_WE, ~CD_EXT_RD, ~CD_EXT_WR, ~CD_TR_RD_FIX, ~CD_TR_WR_FIX, ~CD_TR_RD_SPR, ~CD_TR_WR_SPR, ~CD_TR_RD_PCM, ~CD_TR_WR_PCM} ? ~PROM_DATA_READY | nDTACK :
+                  (CD_TR_RD_Z80 | CD_TR_WR_Z80) ? ~nZ80WAIT | nDTACK : nDTACK;
 
 cpu_68k M68KCPU(
 	.CLK(CLK_48M),
@@ -532,13 +532,12 @@ assign P2ROM_ADDR = ({24{(CD_EXT_RD | CD_EXT_WR | SRAM_RD | SRAM_WE | WRAM_RD | 
                     ({24{(CD_TR_RD_FIX | CD_TR_WR_FIX)}} & {ADDR_MUX[17:6], ADDR_MUX[3:1], ~ADDR_MUX[5], ADDR_MUX[4]}) |
                     ({24{(CD_TR_RD_SPR | CD_TR_WR_SPR)}} & {CD_BANK_SPR, ADDR_MUX[19:7], ADDR_MUX[5:2], ~ADDR_MUX[6], ADDR_MUX[1:0]}) |
 					({24{(CD_TR_RD_PCM | CD_TR_WR_PCM)}} & {CD_BANK_PCM, ADDR_MUX[19:1]}) |
-					({24{CD_TR_WR_Z80}} & ADDR_MUX[16:1]) |
 					({24{(!CART_PCHIP & !(nROMOE & nPORTOE & nSROMOE))}} & {P_BANK, ADDR_MUX[19:1], 1'b0}) |
 					NEO_PVC_P2ROM_ADDR | NEO_SMA_P2ROM_ADDR;
 
 wire [15:0] CD_TR_DOUT = DMA_RUNNING ? DMA_DATA_OUT : M68K_DATA;
-assign PROM_DOUT = (CD_TR_WR_FIX | CD_TR_WR_Z80 | CD_TR_WR_PCM) ? {CD_TR_DOUT[7:0], CD_TR_DOUT[7:0]} : CD_TR_DOUT;
-assign PROM_DS = (CD_TR_WR_FIX | CD_TR_WR_Z80 | CD_TR_WR_PCM) ? {P2ROM_ADDR[0], ~P2ROM_ADDR[0]} :
+assign PROM_DOUT = (CD_TR_WR_FIX | CD_TR_WR_PCM) ? {CD_TR_DOUT[7:0], CD_TR_DOUT[7:0]} : CD_TR_DOUT;
+assign PROM_DS = (CD_TR_WR_FIX | CD_TR_WR_PCM) ? {P2ROM_ADDR[0], ~P2ROM_ADDR[0]} :
                  DMA_RUNNING ? 2'b11 : ~{nUDS, nLDS};
 wire [23:0] NEO_PVC_P2ROM_ADDR;
 
@@ -869,18 +868,23 @@ wire [7:0] Z80_RAM_DATA;
 spram #(11) Z80RAM(.clock(CLK_48M), .address(SDA[10:0]), .data(SDD_OUT), .wren(~(nZRAMCS | nSDMWR)), .q(Z80_RAM_DATA));	// Fast enough ?
 
 assign SDD_IN = (~nSDZ80R) ? SDD_RD_C1 :
-					(~nSDMRD & ~nSDROM) ? M1_ROM_DATA :
 					(~nSDMRD & ~nZRAMCS) ? Z80_RAM_DATA :
+					(~nSDMRD & (~nSDROM | SYSTEM_CDx)) ? M1_ROM_DATA :
 					(~n2610CS & ~n2610RD) ? YM2610_DOUT :
 					8'b00000000;
 
 wire Z80_nRESET = SYSTEM_CDx ? nRESET & CD_nRESET_Z80 : nRESET;
 wire CD_HAS_Z80_BUS = (CD_USE_Z80 & ~(nBUSAK & Z80_nRESET));
 
+reg Z80_ROM_WR_PRE; // data out valid, but nWR is not asserted yet
+always @(posedge CLK_48M) if (CLK_EN_4M_P) Z80_ROM_WR_PRE <= ~CD_HAS_Z80_BUS & ~nZ80_MREQ & nZ80_SDRD;
+
 wire [7:0] M1_ROM_DATA = Z80_ROM_DATA;
-wire nZ80WAIT = Z80_ROM_RD ? Z80_ROM_READY : 1'b1;
-assign Z80_ROM_RD = ~(nSDMRD | nSDROM);
-assign Z80_ROM_ADDR = {MA, SDA[10:0]};
+assign Z80_ROM_RD = ~(nSDMRD | (nSDROM & ~SYSTEM_CDx) | ~nZRAMCS);
+assign Z80_ROM_WR = (~nSDMWR | Z80_ROM_WR_PRE) & nZRAMCS & SYSTEM_CDx; // in CD mode, the full Z80 area is writeable
+assign Z80_ROM_ADDR = {~SYSTEM_CDx ? MA : SDA[15:11], SDA[10:0]};
+assign Z80_ROM_DOUT = SDD_OUT;
+wire nZ80WAIT = (Z80_ROM_RD | Z80_ROM_WR) ? Z80_ROM_READY : 1'b1;
 
 cpu_z80 Z80CPU(
 	.CLK(CLK_48M),
@@ -893,7 +897,7 @@ cpu_z80 Z80CPU(
 	.nINT(nZ80INT), .nNMI(nZ80NMI), .nWAIT(nZ80WAIT)
 );
 
-assign { SDA, SDD_OUT } = ~CD_HAS_Z80_BUS ? { Z80_SDA, Z80_SDD_OUT } : { M68K_ADDR[16:1], M68K_DATA[7:0] };
+assign { SDA, SDD_OUT } = ~CD_HAS_Z80_BUS ? { Z80_SDA, Z80_SDD_OUT } : DMA_RUNNING ? { DMA_ADDR_OUT[16:1], DMA_DATA_OUT[7:0] } : { M68K_ADDR[16:1], M68K_DATA[7:0] };
 assign { nSDRD, nSDWR } = ~CD_HAS_Z80_BUS ? { nZ80_SDRD, nZ80_SDWR } : { ~CD_TR_RD_Z80, ~CD_TR_WR_Z80 };
 assign { nMREQ } = ~CD_HAS_Z80_BUS ? nZ80_MREQ : ~(CD_TR_RD_Z80 | CD_TR_WR_Z80);
 

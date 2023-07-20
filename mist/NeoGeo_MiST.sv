@@ -259,7 +259,6 @@ wire        CD_EXT_RD;
 wire        CD_EXT_WR;
 wire        CD_FIX_RD;
 wire        CD_FIX_WR;
-wire        CD_Z80_WR;
 wire        CD_SPR_RD;
 wire        CD_SPR_WR;
 wire        CD_PCM_RD;
@@ -302,7 +301,9 @@ wire        CROM_RD;
 
 wire [18:0] Z80_ROM_ADDR;
 wire        Z80_ROM_RD;
+wire        Z80_ROM_WR;
 wire [15:0] Z80_ROM_DATA;
+wire  [7:0] Z80_ROM_DOUT;
 wire        Z80_ROM_READY;
 
 wire [19:0] ADPCMA_ADDR;
@@ -594,14 +595,13 @@ always @(*) begin
 	if (SROM_RD)                             ROM_ADDR = { 5'b11111, P2ROM_ADDR[18:0] };
 	else if (ROM_RD)                         ROM_ADDR = P2ROM_ADDR[19:0];
 	else if (CD_EXT_RD | CD_EXT_WR)          ROM_ADDR = P2ROM_ADDR[20:0];
-	else if (CD_Z80_WR)                      ROM_ADDR = { 8'b11110000, P2ROM_ADDR[15:0] };
 	else if (CD_FIX_RD | CD_FIX_WR)          ROM_ADDR = { 6'b111000, P2ROM_ADDR[17:0] };
 	else if (WRAM_WE | WRAM_RD)              ROM_ADDR = { 8'b11101011, P2ROM_ADDR[15:0] };
 	else if (SRAM_WE | SRAM_RD)              ROM_ADDR = { 8'b11101010, P2ROM_ADDR[15:0] };
 	else                                     ROM_ADDR = 24'h100000 + (P2ROM_ADDR[23:0] & P2Mask[23:0]);
 end
 
-wire  [1:0] ROM_WR_DS = {2{(CD_EXT_WR | CD_Z80_WR | CD_FIX_WR | SRAM_WE | WRAM_WE)}} & PROM_DS;
+wire  [1:0] ROM_WR_DS = {2{(CD_EXT_WR | CD_FIX_WR | SRAM_WE | WRAM_WE)}} & PROM_DS;
 wire [15:0] P2ROM_Q;
 wire        P2ROM_DATA_READY;
 assign PROM_DATA = (CD_SPR_RD | CD_PCM_RD) ? port2_q : P2ROM_Q;
@@ -626,7 +626,7 @@ sdram_2w_cl2 #(96) sdram
 
   // Main CPU
   .cpu1_rom_addr ( ROM_ADDR[23:1] ),
-  .cpu1_rom_cs   ( CD_EXT_RD | CD_EXT_WR | CD_FIX_RD | CD_FIX_WR | CD_Z80_WR | ROM_RD | PORT_RD | SROM_RD | WRAM_RD | SRAM_RD | WRAM_WE | SRAM_WE ),
+  .cpu1_rom_cs   ( CD_EXT_RD | CD_EXT_WR | CD_FIX_RD | CD_FIX_WR | ROM_RD | PORT_RD | SROM_RD | WRAM_RD | SRAM_RD | WRAM_WE | SRAM_WE ),
   .cpu1_rom_ds   ( ROM_WR_DS ), // for write, 00 for read
   .cpu1_rom_d    ( PROM_DOUT ),
   .cpu1_rom_q    ( P2ROM_Q ),
@@ -634,7 +634,10 @@ sdram_2w_cl2 #(96) sdram
 
   // Audio CPU
   .cpu2_rom_addr ( SYSTEM_ROMS ? { 6'b111011, Z80_ROM_ADDR[17:1] } : { 5'b11110, Z80_ROM_ADDR[18:1] } ),
-  .cpu2_rom_cs   ( Z80_ROM_RD    ),
+  .cpu2_rom_rd   ( Z80_ROM_RD ),
+  .cpu2_rom_wr   ( Z80_ROM_WR ),
+  .cpu2_rom_ds   ( {Z80_ROM_ADDR[0], !Z80_ROM_ADDR[0]} ),
+  .cpu2_rom_d    ( Z80_ROM_DOUT  ),
   .cpu2_rom_q    ( Z80_ROM_DATA  ),
   .cpu2_rom_valid( Z80_ROM_READY ),
 
@@ -772,7 +775,6 @@ neogeo_top neogeo_top (
 	.CD_EXT_WR           ( CD_EXT_WR ),
 	.CD_FIX_RD           ( CD_FIX_RD ),
 	.CD_FIX_WR           ( CD_FIX_WR ),
-	.CD_Z80_WR           ( CD_Z80_WR ),
 	.CD_SPR_RD           ( CD_SPR_RD ),
 	.CD_SPR_WR           ( CD_SPR_WR ),
 	.CD_PCM_RD           ( CD_PCM_RD ),
@@ -793,7 +795,9 @@ neogeo_top neogeo_top (
 
 	.Z80_ROM_ADDR        ( Z80_ROM_ADDR ),
 	.Z80_ROM_RD          ( Z80_ROM_RD   ),
+	.Z80_ROM_WR          ( Z80_ROM_WR   ),
 	.Z80_ROM_DATA        ( Z80_ROM_ADDR[0] ? Z80_ROM_DATA[15:8] : Z80_ROM_DATA[7:0] ),
+	.Z80_ROM_DOUT        ( Z80_ROM_DOUT ),
 	.Z80_ROM_READY       ( Z80_ROM_READY ),
 
 	.SLOW_SCB1_VRAM_ADDR      ( SLOW_VRAM_ADDR ),
