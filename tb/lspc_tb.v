@@ -256,7 +256,7 @@ wire [ 3: 0] GBD;
 
 neo_zmc2 ZMC2(
 	.CLK(CLK_48M),
-	.CLK_EN_12M(CLK_EN_12M_N),
+	.CLK_EN_12M_N(CLK_EN_12M_N),
 	.EVEN(EVEN1), .LOAD(LOAD), .H(H),
 	.CR(CR),
 	.GAD(GAD), .GBD(GBD),
