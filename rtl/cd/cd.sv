@@ -49,6 +49,7 @@ module cd_sys(
 	output reg CD_USE_FIX,
 	output reg CD_USE_SPR,
 	output reg CD_USE_Z80,
+	output reg CD_USE_PCM,
 	output reg [2:0] CD_TR_AREA,
 	output reg [1:0] CD_BANK_SPR,
 	output reg CD_BANK_PCM,
@@ -98,7 +99,6 @@ module cd_sys(
 );
 	parameter MCLK = 96671316;
 
-	reg CD_USE_PCM;
 	reg CD_nRESET_DRIVE;
 	reg [15:0] REG_FF0002;
 	reg [11:0] REG_FF0004;
@@ -210,9 +210,9 @@ module cd_sys(
 	localparam DMA_STATE_IDLE = 4'd0, DMA_STATE_BR = 4'd1, DMA_STATE_WAIT_BG = 4'd2,
 	           DMA_STATE_WAIT_AS = 4'd3, DMA_STATE_START = 4'd4,
 	           DMA_STATE_CACHE_RD = 4'd5, DMA_STATE_CACHE_RD_L = 4'd6,
-	           DMA_STATE_INIT_RD = 4'd7, DMA_STATE_RD = 4'd8, DMA_STATE_RD_DONE = 4'd9,
-	           DMA_STATE_INIT_WR = 4'd10, DMA_STATE_WR = 4'd11, DMA_STATE_WR_DONE = 4'd12,
-	           DMA_STATE_DONE = 4'd13;
+	           DMA_STATE_INIT_RD = 4'd7, DMA_STATE_RD = 4'd8, DMA_STATE_RD_WAIT = 4'd9, DMA_STATE_RD_DONE = 4'd10,
+	           DMA_STATE_INIT_WR = 4'd11, DMA_STATE_WR = 4'd12, DMA_STATE_WR_DONE = 4'd13,
+	           DMA_STATE_DONE = 4'd14;
 
 	localparam DMA_COPY_CD_WORD = 3'd0, DMA_COPY_CD_BYTE = 3'd1, DMA_COPY_WORD = 3'd2,
 	           DMA_COPY_BYTE = 3'd3, DMA_FILL_VALUE = 3'd4;
@@ -221,7 +221,6 @@ module cd_sys(
 	reg [2:0] DMA_MODE;
 	reg [3:0] DMA_STATE;
 	reg [3:0] DMA_IO_CNT;
-	reg [7:0] DMA_TIMER;
 	reg [15:0] DMA_RD_DATA;
 	reg [31:0] DMA_COUNT_RUN;
 	
@@ -247,7 +246,6 @@ module cd_sys(
 			nBGACK <= 1;
 			
 			DMA_RUNNING <= 0;
-			DMA_TIMER <= 8'd0;
 			
 			CACHE_WR_EN <= 0;
 			CACHE_RD_BANK <= 0;
@@ -338,7 +336,7 @@ module cd_sys(
 			// Rising edge of DMA_START
 			if (~DMA_START_PREV & DMA_START)
 			begin
-				DMA_STATE <= 4'd1;
+				DMA_STATE <= DMA_STATE_BR;
 				DMA_IO_CNT <= 4'd0;
 
 				DMA_COUNT_RUN <= DMA_COUNT;
@@ -371,30 +369,26 @@ module cd_sys(
 			end
 
 			// DMA logic
-			
-			// DMA_TIMER is a minimum wait, so tick it even when DMA_SDRAM_BUSY
-			if (DMA_TIMER)
-				DMA_TIMER <= DMA_TIMER - 1'b1;
-			
-			if (!DMA_SDRAM_BUSY)
+
+			if (CLK_68KCLK_EN)
 			begin
-				if (!DMA_TIMER)
-				begin
-					if (DMA_STATE == DMA_STATE_BR)
+				case (DMA_STATE)
+
+					DMA_STATE_BR:
 					begin
 						// Init: Do 68k bus request
 						nBR <= 0;
 						DMA_STATE <= DMA_STATE_WAIT_BG;
 					end
 
-					if (DMA_STATE == DMA_STATE_WAIT_BG)
+					DMA_STATE_WAIT_BG:
 					begin
 						// Init: Wait for nBG low
 						if (~nBG)
 							DMA_STATE <= DMA_STATE_WAIT_AS;
 					end
 
-					if (DMA_STATE == DMA_STATE_WAIT_AS)
+					DMA_STATE_WAIT_AS:
 					begin
 						// Init: Wait for nAS and nDTACK high
 						if (nAS & nDTACK)
@@ -406,7 +400,7 @@ module cd_sys(
 						end
 					end
 
-					if (DMA_STATE == DMA_STATE_START)
+					DMA_STATE_START:
 					begin
 						// Base state for DMA loop
 						// FX68K doesn't tri-state its outputs when it releases the bus (good !)
@@ -500,15 +494,14 @@ module cd_sys(
 						end
 					end
 
-					if (DMA_STATE == DMA_STATE_CACHE_RD)
+					DMA_STATE_CACHE_RD:
 					begin
 						DMA_RD_DATA[15:8] <= CACHE_DOUT; // Got upper byte
 						CACHE_RD_ADDR <= CACHE_RD_ADDR + 1'b1;
-						DMA_TIMER <= 8'd10;	// TODO: Tune this
 						DMA_STATE <= DMA_STATE_CACHE_RD_L;
 					end
 
-					if (DMA_STATE == DMA_STATE_CACHE_RD_L)
+					DMA_STATE_CACHE_RD_L:
 					begin
 						DMA_RD_DATA[7:0] <= CACHE_DOUT;	// Got lower byte
 						CACHE_RD_ADDR <= CACHE_RD_ADDR + 1'b1;
@@ -516,15 +509,14 @@ module cd_sys(
 						DMA_STATE <= DMA_STATE_START;
 					end
 
-					if (DMA_STATE == DMA_STATE_WR)
+					DMA_STATE_WR:
 					begin
 						DMA_WR_OUT <= 1;
-						DMA_TIMER <= 8'd20;	// TODO: Tune this
 						DMA_STATE <= DMA_STATE_WR_DONE;
 					end
 
-					if (DMA_STATE == DMA_STATE_WR_DONE)
-					begin
+					DMA_STATE_WR_DONE:
+					if (!DMA_SDRAM_BUSY) begin
 						// Write done
 						DMA_WR_OUT <= 0;
 						DMA_ADDR_OUT <= DMA_ADDR_OUT + 2'd2;
@@ -532,14 +524,18 @@ module cd_sys(
 						DMA_STATE <= DMA_STATE_START;
 					end
 
-					if (DMA_STATE == DMA_STATE_RD)
+					DMA_STATE_RD:
 					begin
 						DMA_RD_OUT <= 1;
-						DMA_TIMER <= 8'd20;	// TODO: Tune this
+						DMA_STATE <= DMA_STATE_RD_WAIT;
+					end
+
+					DMA_STATE_RD_WAIT:
+					if (!DMA_SDRAM_BUSY) begin
 						DMA_STATE <= DMA_STATE_RD_DONE;
 					end
 
-					if (DMA_STATE == DMA_STATE_RD_DONE)
+					DMA_STATE_RD_DONE:
 					begin
 						DMA_RD_OUT <= 0;
 						DMA_RD_DATA <= DMA_DATA_IN;
@@ -548,14 +544,16 @@ module cd_sys(
 						DMA_STATE <= DMA_STATE_START;
 					end
 
-					if (DMA_STATE == DMA_STATE_DONE)
+					DMA_STATE_DONE:
 					begin
 						DMA_COUNT_RUN <= DMA_COUNT_RUN - 1'b1;
 						DMA_STATE <= DMA_STATE_START;
 						DMA_IO_CNT <= 4'd0;
 					end
 
-				end
+					default: ;
+
+				endcase
 			end
 		end
 	end
@@ -567,7 +565,7 @@ module cd_sys(
 	wire LC8951_WR = (WRITING & (M68K_ADDR[11:2] == 10'b0001_000000));	// FF0101, FF0103
 	
 	// nAS used ?
-	wire TR_ZONE = DMA_RUNNING ? ((DMA_RD_OUT ? DMA_ADDR_IN[23:20] : DMA_ADDR_OUT[23:20]) == 4'hE) : (M68K_ADDR[23:20] == 4'hE);
+	wire TR_ZONE = DMA_RUNNING ? ((DMA_RD_OUT ? DMA_ADDR_IN[23:20] : DMA_ADDR_OUT[23:20]) == 4'hE) : (M68K_ADDR[23:20] == 4'hE) & SYSTEM_CDx;
 
 	wire TR_ZONE_RD = TR_ZONE & (DMA_RUNNING ? DMA_RD_OUT : M68K_RW & ~(nLDS & nUDS));
 	wire TR_ZONE_WR = TR_ZONE & (DMA_RUNNING ? DMA_WR_OUT : ~M68K_RW & ~(nLDS & nUDS));
