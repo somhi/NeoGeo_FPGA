@@ -16,8 +16,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-/* verilator lint_off PINMISSING */
-
 module lspc_regs_sync(
 	input CLK,
 	input RESET,

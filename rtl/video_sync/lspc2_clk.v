@@ -45,9 +45,7 @@ module lspc2_clk_sync(
 	output LSPC_EN_4M_N
 );
 reg       CLK_24M;
-/* verilator lint_off UNOPTFLAT */
 reg [3:0] DIV_CNT;
-/* verilator lint_on UNOPTFLAT */
 reg [1:0] DIV_CNT3;
 
 always @(posedge CLK) begin

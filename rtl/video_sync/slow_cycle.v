@@ -17,8 +17,6 @@
 
 // Slow VRAM is 120ns (3mclk or more, probably 3.5mclk)
 
-/* verilator lint_off PINMISSING */
-
 module slow_cycle_sync(
 	input CLK,
 	input CLK_EN_24M_P,

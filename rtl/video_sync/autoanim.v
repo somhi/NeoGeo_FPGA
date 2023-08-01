@@ -15,8 +15,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-/* verilator lint_off PINMISSING */
-
 module autoanim_sync(
 	input CLK,
 	input RASTER8,

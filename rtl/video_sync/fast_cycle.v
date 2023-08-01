@@ -19,8 +19,6 @@
 //  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //============================================================================
 
-/* verilator lint_off PINMISSING */
-
 module fast_cycle_sync(
 	input CLK,
 	input CLK_24M,

@@ -21,8 +21,6 @@
 
 // All pins listed ok. REF, DIVI and DIVO only used on AES for video PLL hack
 
-/* verilator lint_off PINMISSING */
-
 module lspc2_a2_sync(
 	input CLK,
 	input CLK_EN_24M_P,
@@ -108,10 +106,8 @@ module lspc2_a2_sync(
 	
 	wire [2:0] TIMER_MODE;
 	
-/* verilator lint_off UNOPTFLAT */
 	wire [3:0] T31_P;
 	wire [3:0] U24_P;
-/* verilator lint_on UNOPTFLAT */
 	reg  [3:0] O227_Q;
 	
 	wire [7:0] P_MUX_HIGH;
