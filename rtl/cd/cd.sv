@@ -117,7 +117,8 @@ module cd_sys(
 	reg [3:0] CDD_DIN;
 	wire [3:0] CDD_DOUT;
 
-	wire HOCK, CDCK, CDD_nIRQ;
+    reg HOCK;
+	wire CDCK, CDD_nIRQ;
 
 	cd_drive DRIVE(
 		.clk_sys(clk_sys),

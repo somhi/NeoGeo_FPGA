@@ -309,7 +309,7 @@ always @(posedge CLK_48M) begin
 	end
 end
 
-wire [1:0] CD_REGION;
+reg [1:0] CD_REGION;
 always @(CD_REGION_SEL)
 begin
 	// CD Region code remap:
