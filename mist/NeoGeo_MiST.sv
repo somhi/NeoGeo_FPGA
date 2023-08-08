@@ -316,11 +316,11 @@ wire        ADPCMB_RD;
 reg   [7:0] ADPCMB_DATA;
 wire        ADPCMB_DATA_READY;
 
-wire        sample_roma_req;
+reg         sample_roma_req;
 wire        sample_roma_ack;
 wire [25:0] sample_roma_addr;
 wire [31:0] sample_roma_dout;
-wire        sample_romb_req;
+reg         sample_romb_req;
 wire        sample_romb_ack;
 wire [25:0] sample_romb_addr;
 wire [31:0] sample_romb_dout;
