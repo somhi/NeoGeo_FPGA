@@ -28,6 +28,7 @@ PLLJ_PLLSPE_INFO.txt
 *.ppf
 *.ddb
 build_id.v
+build_id.vh
 c5_pin_model_dump.txt
 *.sopcinfo
 *.csv
@@ -41,3 +42,17 @@ c5_pin_model_dump.txt
 *_netlist
 *.cdf
 !releases/*
+*.log
+*.asm
+*.o
+controller.bin
+controller.map
+*.cache
+*.gen
+*.hw
+*.runs
+*.sim
+*.ip_user_files
+*.srcs
+*.bit
+*.bin
