@@ -57,12 +57,11 @@ localparam CONF_STR = {
 	"S0U,SAV,Load Memory Card;",
 	"TG,Save Memory Card;",
 `endif
-	"O1,System Type,Console(AES),Arcade(MVS);",
-//	"SC,CUE,Mount CD;",
-//	"O12,System Type,Console(AES),Arcade(MVS),CD,CDZ;",
-//	"OKL,CD Speed,1x,2x,3x,4x;",
-//	"OHI,CD Region,US,EU,JP,AS;",
-//	"OJ,CD Lid,Closed,Opened;",
+	"SC,CUE,Mount CD;",
+	"O12,System Type,Console(AES),Arcade(MVS),CD,CDZ;",
+	"OKL,CD Speed,1x,2x,3x,4x;",
+	"OHI,CD Region,US,EU,JP,AS;",
+	"OJ,CD Lid,Closed,Opened;",
 	"O3,Video Mode,NTSC,PAL;",
 	"O45,Scanlines,Off,25%,50%,75%;",
 	"O7,Blending,Off,On;",
@@ -157,8 +156,8 @@ wire [31:0] img_size;
 
 user_io #(
 	.STRLEN(($size(CONF_STR)>>3)),
-	.ROM_DIRECT_UPLOAD(1'b1)
-// ,	.FEATURES(32'h8) /* Neo-Geo CD */
+	.ROM_DIRECT_UPLOAD(1'b1),
+	.FEATURES(32'h8) /* Neo-Geo CD */
 	)
 user_io(
 	.clk_sys        (CLK_48M        ),

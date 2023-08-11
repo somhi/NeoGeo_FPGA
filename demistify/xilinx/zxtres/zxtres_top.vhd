@@ -106,9 +106,11 @@ architecture RTL of zxtres_top is
 	signal rs232_rxd : std_logic;
 	signal rs232_txd : std_logic;
 
-	-- IO
+	-- JOYSTICK
 	signal joya : std_logic_vector(demistify_joybits-1 downto 0);
 	signal joyb : std_logic_vector(demistify_joybits-1 downto 0);
+	signal joy1_b12		: std_logic_vector(11 downto 0);
+	signal joy2_b12		: std_logic_vector(11 downto 0);
 
     -- Joysticks (MegaDrive 3 buttons)
     signal joy1up  : std_logic;
@@ -127,6 +129,27 @@ architecture RTL of zxtres_top is
     signal joy2fire2  : std_logic;
     signal joy2fire3  : std_logic;
     signal joy2start  : std_logic;
+
+	component sega_joystick
+		port (
+		joy1_up_i : in std_logic;
+		joy1_down_i : in std_logic;
+		joy1_left_i : in std_logic;
+		joy1_right_i : in std_logic;
+		joy1_p6_i : in std_logic;
+		joy1_p9_i : in std_logic;
+		joy2_up_i : in std_logic;
+		joy2_down_i : in std_logic;
+		joy2_left_i : in std_logic;
+		joy2_right_i : in std_logic;
+		joy2_p6_i : in std_logic;
+		joy2_p9_i : in std_logic;
+		joyX_p7_o : out std_logic;
+		vga_hsync_n_s : in std_logic;
+		joy1_o : out std_logic_vector  (11 downto 0);
+		joy2_o : out std_logic_vector  (11 downto 0)
+	  );
+	end component;
 
 	-- DAC AUDIO
 	signal dac_l : signed(15 downto 0);
@@ -176,15 +199,6 @@ PS2_KEYBOARD_DAT    <= '0' when ((ps2_keyboard_dat_out = '0') and (intercept = '
 ps2_keyboard_clk_in <= PS2_KEYBOARD_CLK;
 PS2_KEYBOARD_CLK    <= '0' when ((ps2_keyboard_clk_out = '0') and (intercept = '0') ) else 'Z';
 
---joya        <= "1111" & JOY1_B2_P9 & JOY1_B1_P6 & JOY1_RIGHT & JOY1_LEFT & JOY1_DOWN & JOY1_UP;
---joyb        <= (others => '1');
-
---joy1up, joy1down, joy1left, joy1right, joy1fire1, joy1fire2, joy1fire3, joy1start
---joy2up, joy2down, joy2left, joy2right, joy2fire1, joy2fire2, joy2fire3, joy2start
-
-joya        <= "11" & joy1start & joy1fire3 & joy1fire2 & joy1fire1 & joy1right & joy1left & joy1down & joy1up;
-joyb        <= "11" & joy2start & joy2fire3 & joy2fire2 & joy2fire1 & joy2right & joy2left & joy2down & joy2up;
-
 VGA_R       <= vga_red(7 downto 2)  &vga_red(7 downto 6);
 VGA_G       <= vga_green(7 downto 2)&vga_green(7 downto 6);
 VGA_B       <= vga_blue(7 downto 2) &vga_blue(7 downto 6);
@@ -200,23 +214,58 @@ port map(
   joy_data => joy_data,
   joy_clk => joy_clk,
   joy_load_n => joy_load_n,
+
   joy1up => joy1up,
   joy1down => joy1down,
   joy1left => joy1left,
   joy1right => joy1right,
   joy1fire1 => joy1fire1,
   joy1fire2 => joy1fire2,
-  joy1fire3 => joy1fire3,
-  joy1start => joy1start,
+
   joy2up => joy2up,
   joy2down => joy2down,
   joy2left => joy2left,
   joy2right => joy2right,
   joy2fire1 => joy2fire1,
-  joy2fire2 => joy2fire2,
-  joy2fire3 => joy2fire3,
-  joy2start => joy2start
+  joy2fire2 => joy2fire2
 );
+
+sega_joystick_inst : sega_joystick
+port map (
+	joy1_up_i => joy1up,
+	joy1_down_i => joy1down,
+	joy1_left_i => joy1left,
+	joy1_right_i => joy1right,
+	joy1_p6_i => joy1fire1,
+	joy1_p9_i => joy1fire2,
+
+	joy2_up_i => joy2up,
+	joy2_down_i => joy2down,
+	joy2_left_i => joy2left,
+	joy2_right_i => joy2right,
+	joy2_p6_i => joy2fire1,
+	joy2_p9_i => joy2fire2,
+
+	joyX_p7_o => joy_sel,
+	vga_hsync_n_s => vga_hsync,
+	joy1_o => joy1_b12,			 -- Z not working 
+	joy2_o => joy2_b12
+);
+
+--joya        <= "1111" & JOY1_B2_P9 & JOY1_B1_P6 & JOY1_RIGHT & JOY1_LEFT & JOY1_DOWN & JOY1_UP;
+--joyb        <= (others => '1');
+
+-- Mode X Y Z Start A C B Right Left Down Up
+--  11 10 9 8   7   6 5 4   3    2     1   0    -- Z not working 
+
+-- joya <= fireD fireC start select fireB(jump) fireA R L D U
+
+--  S start, A fireC, B fireA, C fireB(jump), Y select(pause)
+joya <= joy1_b12(8)&joy1_b12(6)&joy1_b12(7)&joy1_b12(9)&joy1_b12(5)&joy1_b12(4)&
+		joy1_b12(3)&joy1_b12(2)&joy1_b12(1)&joy1_b12(0);
+
+joyb <= joy2_b12(8)&joy2_b12(6)&joy2_b12(7)&joy2_b12(9)&joy2_b12(5)&joy2_b12(4)&
+		joy2_b12(3)&joy2_b12(2)&joy2_b12(1)&joy2_b12(0);		
 
 
 -- I2S audio
@@ -323,7 +372,12 @@ guest : component NeoGeo_MiST
 			ps2m_dat_out => ps2_mouse_dat_out,
 			
 			-- Buttons
-			buttons => (others => '1'),	-- 0 = opens OSD
+			buttons => (                     	-- 0 = opens OSD
+			demistify_coin1 => joy1_b12(10),	-- X coin key
+			demistify_coin2 => joy2_b12(10),	
+			-- demistify_start2 => '1',
+			-- demistify_start1 => '1',
+			others => '1'),
 
 			-- Joysticks
 			joy1 => joya,

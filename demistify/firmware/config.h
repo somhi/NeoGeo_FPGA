@@ -17,7 +17,7 @@
 #undef PS2_WRITE /* Needed to initialise the mouse and put it in wheel mode */
 
 /* CDROM support - used by the TurboGrafx core */
-#undef CONFIG_CD
+#define CONFIG_CD
 
 /* Disk Image support - used for Save RAM on consoles as well as the
 more obvious application of disk images on computer cores.  If not defined
