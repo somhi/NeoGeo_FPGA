@@ -138,27 +138,6 @@ architecture RTL of neptuno_top is
 			R_data    : in std_logic_vector(15 downto 0)  -- RIGHT data (15-bit signed) 
 		);
 	end component;
-
-	component joydecoder is
-		port (
-			clk        : in std_logic;
-			joy_data   : in std_logic;
-			joy_clk    : out std_logic;
-			joy_load_n : out std_logic;
-			joy1up     : out std_logic;
-			joy1down   : out std_logic;
-			joy1left   : out std_logic;
-			joy1right  : out std_logic;
-			joy1fire1  : out std_logic;
-			joy1fire2  : out std_logic;
-			joy2up     : out std_logic;
-			joy2down   : out std_logic;
-			joy2left   : out std_logic;
-			joy2right  : out std_logic;
-			joy2fire1  : out std_logic;
-			joy2fire2  : out std_logic
-		);
-	end component;
 	
 	-- JOYSTICKS
 	signal joya 		: std_logic_vector(demistify_joybits-1 downto 0);
@@ -166,39 +145,17 @@ architecture RTL of neptuno_top is
 	signal joy1_b12		: std_logic_vector(11 downto 0);
 	signal joy2_b12		: std_logic_vector(11 downto 0);
 
-	signal joy1up       : std_logic := '1';
-	signal joy1down     : std_logic := '1';
-	signal joy1left     : std_logic := '1';
-	signal joy1right    : std_logic := '1';
-	signal joy1fire1    : std_logic := '1';
-	signal joy1fire2    : std_logic := '1';
-	signal joy2up       : std_logic := '1';
-	signal joy2down     : std_logic := '1';
-	signal joy2left     : std_logic := '1';
-	signal joy2right    : std_logic := '1';
-	signal joy2fire1    : std_logic := '1';
-	signal joy2fire2    : std_logic := '1';
-	signal clk_sys_out  : std_logic;
-
-	component sega_joystick
+	component joydecoder
 		port (
-		joy1_up_i : in std_logic;
-		joy1_down_i : in std_logic;
-		joy1_left_i : in std_logic;
-		joy1_right_i : in std_logic;
-		joy1_p6_i : in std_logic;
-		joy1_p9_i : in std_logic;
-		joy2_up_i : in std_logic;
-		joy2_down_i : in std_logic;
-		joy2_left_i : in std_logic;
-		joy2_right_i : in std_logic;
-		joy2_p6_i : in std_logic;
-		joy2_p9_i : in std_logic;
-		joyX_p7_o : out std_logic;
-		vga_hsync_n_s : in std_logic;
-		joy1_o : out std_logic_vector  (11 downto 0);
-		joy2_o : out std_logic_vector  (11 downto 0)
-	  );
+		  clk : in std_logic;
+		  joy_data : in std_logic;
+		  joy_clk : out std_logic;
+		  joy_load_n : out std_logic;
+		  reset : in std_logic;
+		  hsync_n_s : in std_logic;
+		  joy1_o : out std_logic_vector  (11 downto 0);
+		  joy2_o : out std_logic_vector  (11 downto 0)
+		);
 	end component;
 
 	signal sram_we_x 	: std_logic;
@@ -238,67 +195,38 @@ begin
 	ps2_keyboard_clk_in <= PS2_KEYBOARD_CLK;
 	PS2_KEYBOARD_CLK    <= '0' when ps2_keyboard_clk_out = '0' else 'Z';
 
-	-- JOYSTICKS
-
-	joy : joydecoder
-	port map(
-		clk        => CLOCK_50_I,
-		joy_clk    => JOY_CLK,
-		joy_load_n => JOY_LOAD,
-		joy_data   => JOY_DATA,
-		joy1up     => joy1up,
-		joy1down   => joy1down,
-		joy1left   => joy1left,
-		joy1right  => joy1right,
-		joy1fire1  => joy1fire1,
-		joy1fire2  => joy1fire2,
-		joy2up     => joy2up,
-		joy2down   => joy2down,
-		joy2left   => joy2left,
-		joy2right  => joy2right,
-		joy2fire1  => joy2fire1,
-		joy2fire2  => joy2fire2
-	);
-
-
-	sega_joystick_inst : sega_joystick
-	port map (
-		joy1_up_i => joy1up,
-		joy1_down_i => joy1down,
-		joy1_left_i => joy1left,
-		joy1_right_i => joy1right,
-		joy1_p6_i => joy1fire1,
-		joy1_p9_i => joy1fire2,
-		joy2_up_i => joy2up,
-		joy2_down_i => joy2down,
-		joy2_left_i => joy2left,
-		joy2_right_i => joy2right,
-		joy2_p6_i => joy2fire1,
-		joy2_p9_i => joy2fire2,
-		joyX_p7_o => JOYP7_O,
-		vga_hsync_n_s => vga_hsync,
-		joy1_o => joy1_b12,			 -- Z not working 
-		joy2_o => joy2_b12
-	);
-
-
-	-- Mode X Y Z Start A C B Right Left Down Up
-	--  11 10 9 8   7   6 5 4   3    2     1   0    -- Z not working 
-
-	-- joya <= fireD fireC start select fireB(jump) fireA R L D U
-
-    --  S start, A fireC, B fireA, C fireB(jump), Y select(pause)
-	joya <= joy1_b12(8)&joy1_b12(6)&joy1_b12(7)&joy1_b12(9)&joy1_b12(5)&joy1_b12(4)&
-			joy1_b12(3)&joy1_b12(2)&joy1_b12(1)&joy1_b12(0);
-
-	joyb <= joy2_b12(8)&joy2_b12(6)&joy2_b12(7)&joy2_b12(9)&joy2_b12(5)&joy2_b12(4)&
-			joy2_b12(3)&joy2_b12(2)&joy2_b12(1)&joy2_b12(0);
-
 	VGA_R     <= vga_red  (7 downto 2);
 	VGA_G     <= vga_green(7 downto 2);
 	VGA_B     <= vga_blue (7 downto 2);
 	VGA_HS    <= vga_hsync;
 	VGA_VS    <= vga_vsync;
+	
+	-- JOYSTICKS
+	joydecoder_inst : component joydecoder
+	port map (
+	  clk => CLK_50_buf,
+	  joy_data => JOY_DATA,
+	  joy_clk => JOY_CLK,
+	  joy_load_n => JOY_LOAD,
+	  reset => not reset_n,
+	  hsync_n_s => vga_hsync,
+	  joy1_o => joy1_b12,			-- MXYZ SACB RLDU  Negative Logic
+	  joy2_o => joy2_b12
+	);
+  
+	JOYP7_O <= vga_hsync;
+
+	-- Mode X Y Z Start A C B Right Left Down Up
+	--  11 10 9 8   7   6 5 4   3    2     1   0    -- Z not working 
+
+	-- joya <= fireD fireC start select fireB(jump) fireA R L D U
+	joya <= joy1_b12(8)&joy1_b12(6)&joy1_b12(7)&joy1_b12(9)&joy1_b12(5)&joy1_b12(4)&
+			joy1_b12(3)&joy1_b12(2)&joy1_b12(1)&joy1_b12(0);
+
+	joyb <= joy2_b12(8)&joy2_b12(6)&joy2_b12(7)&joy2_b12(9)&joy2_b12(5)&joy2_b12(4)&
+			joy2_b12(3)&joy2_b12(2)&joy2_b12(1)&joy2_b12(0);		
+
+	--  S start, A fireC, B fireA, C fireB(jump), Y select(pause)
 
 	-- I2S audio
 	audio_i2s : entity work.audio_top
