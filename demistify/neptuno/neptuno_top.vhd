@@ -145,7 +145,7 @@ architecture RTL of neptuno_top is
 	signal joy1_b12		: std_logic_vector(11 downto 0);
 	signal joy2_b12		: std_logic_vector(11 downto 0);
 
-	component joydecoder
+	component joydecoder_v02
 		port (
 		  clk : in std_logic;
 		  joy_data : in std_logic;
@@ -202,9 +202,9 @@ begin
 	VGA_VS    <= vga_vsync;
 	
 	-- JOYSTICKS
-	joydecoder_inst : component joydecoder
+	joydecoder_inst : component joydecoder_v02
 	port map (
-	  clk => CLK_50_buf,
+	  clk => CLOCK_50_I,
 	  joy_data => JOY_DATA,
 	  joy_clk => JOY_CLK,
 	  joy_load_n => JOY_LOAD,

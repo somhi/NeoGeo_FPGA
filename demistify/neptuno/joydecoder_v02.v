@@ -34,7 +34,7 @@
 //     **    20.00 Mhz -> OK
 //     ** It may give different values with other cores
 //
-module joydecoder (
+module joydecoder_v02 (
 //-------------------------------------------
   input wire  clk,
   input wire  joy_data,
