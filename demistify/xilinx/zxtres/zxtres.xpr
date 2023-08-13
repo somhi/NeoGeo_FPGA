@@ -96,7 +96,7 @@
           <Attr Name="IsVisible" Val="1"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/joydecoder_lx25_v02.v">
+      <File Path="$PPRDIR/../../common/joystick/joydecoder_neptuno.v">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
@@ -1046,6 +1046,12 @@
         </FileInfo>
       </File>
       <File Path="$PPRDIR/../../DeMiSTify/controller/io_ps2_com.vhd">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../common/joystick/joystick_sega.vhd">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>

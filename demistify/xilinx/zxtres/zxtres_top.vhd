@@ -111,19 +111,61 @@ architecture RTL of zxtres_top is
 	signal joyb : std_logic_vector(demistify_joybits-1 downto 0);
 	signal joy1_b12		: std_logic_vector(11 downto 0);
 	signal joy2_b12		: std_logic_vector(11 downto 0);
+	
+	signal joy1up      : std_logic := '1';
+	signal joy1down    : std_logic := '1';
+	signal joy1left    : std_logic := '1';
+	signal joy1right   : std_logic := '1';
+	signal joy1fire1   : std_logic := '1';
+	signal joy1fire2   : std_logic := '1';
+	signal joy2up      : std_logic := '1';
+	signal joy2down    : std_logic := '1';
+	signal joy2left    : std_logic := '1';
+	signal joy2right   : std_logic := '1';
+	signal joy2fire1   : std_logic := '1';
+	signal joy2fire2   : std_logic := '1';
 
-	component joydecoder
+	component joydecoder_neptuno is
 		port (
-		  clk : in std_logic;
-		  joy_data : in std_logic;
-		  joy_clk : out std_logic;
-		  joy_load_n : out std_logic;
-		  reset : in std_logic;
-		  hsync_n_s : in std_logic;
-		  joy1_o : out std_logic_vector  (11 downto 0);
-		  joy2_o : out std_logic_vector  (11 downto 0)
+			clk_i         : in std_logic;
+			joy_data_i    : in std_logic;
+			joy_clk_o     : out std_logic;
+			joy_load_o    : out std_logic;
+			joy1_up_o     : out std_logic;
+			joy1_down_o   : out std_logic;
+			joy1_left_o   : out std_logic;
+			joy1_right_o  : out std_logic;
+			joy1_fire1_o  : out std_logic;
+			joy1_fire2_o  : out std_logic;
+			joy2_up_o     : out std_logic;
+			joy2_down_o   : out std_logic;
+			joy2_left_o   : out std_logic;
+			joy2_right_o  : out std_logic;
+			joy2_fire1_o  : out std_logic;
+			joy2_fire2_o  : out std_logic
+		);
+	end component;	
+	
+	component joystick_sega is
+		generic
+		(
+		  CLK_SPEED       : integer := 50000
+		);
+		port 
+		(
+			joy0 			: in std_logic_vector(5 downto 0);
+			joy1 			: in std_logic_vector(5 downto 0);
+			
+			-- fire12-1, up, down, left, right
+			player1			: out std_logic_vector(11 downto 0);
+			player2			: out std_logic_vector(11 downto 0);
+			
+			-- sega joystick
+			clk_i    		: in std_logic;
+			sega_strobe		: out std_logic
 		);
 	end component;
+	
 
 	-- DAC AUDIO
 	signal dac_l : signed(15 downto 0);
@@ -181,29 +223,57 @@ VGA_VS      <= vga_vsync;
 
 
 -- JOYSTICKS
-joydecoder_inst : entity work.joydecoder
-  port map (
-    clk => CLK_50_buf,
-    joy_data => joy_data,
-    joy_clk => joy_clk,
-    joy_load_n => joy_load_n,
-    reset => not reset_n,
-    hsync_n_s => vga_hsync,
-    joy1_o => joy1_b12,			-- MXYZ SACB RLDU  Negative Logic
-    joy2_o => joy2_b12
-  );
+joy : component joydecoder_neptuno
+	port map(
+		clk_i         => CLK_50_buf,
+		joy_data_i    => joy_data,
+		joy_clk_o     => joy_clk,
+		joy_load_o    => joy_load_n,
+		joy1_up_o     => joy1up,
+		joy1_down_o   => joy1down,
+		joy1_left_o   => joy1left,
+		joy1_right_o  => joy1right,
+		joy1_fire1_o  => joy1fire1,
+		joy1_fire2_o  => joy1fire2,
+		joy2_up_o     => joy2up,
+		joy2_down_o   => joy2down,
+		joy2_left_o   => joy2left,
+		joy2_right_o  => joy2right,
+		joy2_fire1_o  => joy2fire1,
+		joy2_fire2_o  => joy2fire2
+	);
+	
+	sega : component joystick_sega
+	generic map(
+		CLK_SPEED=>50000
+	)
+	port map(
+		joy0       => joy1fire2&joy1fire1&joy1up&joy1down&joy1left&joy1right,
+		joy1       => joy2fire2&joy2fire1&joy2up&joy2down&joy2left&joy2right,
+		-- fire12-1, up, down, left,right
+		-- joy_s format MXYZ SACB UDLR
+		player1    => joy1_b12,
+		player2    => joy2_b12,
+		-- sega joystick
+		clk_i      => CLK_50_buf,
+		sega_strobe=> joy_sel
+	);	
 
-joy_sel <= vga_hsync;
+	joya <= joy1_b12(9)&joy1_b12(10) &joy1_b12(7) &joy1_b12(8) &joy1_b12(4)&joy1_b12(6)
+			&joy1_b12(0)&joy1_b12(1)&joy1_b12(2)&joy1_b12(3);
+	joyb <= joy2_b12(9)&joy2_b12(10) &joy2_b12(7) &joy2_b12(8) &joy2_b12(4)&joy2_b12(6)
+			&joy2_b12(0)&joy2_b12(1)&joy2_b12(2)&joy2_b12(3);	
+  
 
 -- Mode X Y Z Start A C B Right Left Down Up
 --  11 10 9 8   7   6 5 4   3    2     1   0    -- Z not working 
 
--- joya <= fireD fireC start select fireB(jump) fireA R L D U
-joya <= joy1_b12(8)&joy1_b12(6)&joy1_b12(7)&joy1_b12(9)&joy1_b12(5)&joy1_b12(4)&
-		joy1_b12(3)&joy1_b12(2)&joy1_b12(1)&joy1_b12(0);
+-- joya = fireD fireC start select fireB(jump) fireA R L D U
+-- joya <= joy1_b12(8)&joy1_b12(6)&joy1_b12(7)&joy1_b12(9)&joy1_b12(5)&joy1_b12(4)&
+-- 		joy1_b12(3)&joy1_b12(2)&joy1_b12(1)&joy1_b12(0);
 
-joyb <= joy2_b12(8)&joy2_b12(6)&joy2_b12(7)&joy2_b12(9)&joy2_b12(5)&joy2_b12(4)&
-		joy2_b12(3)&joy2_b12(2)&joy2_b12(1)&joy2_b12(0);		
+-- joyb <= joy2_b12(8)&joy2_b12(6)&joy2_b12(7)&joy2_b12(9)&joy2_b12(5)&joy2_b12(4)&
+-- 		joy2_b12(3)&joy2_b12(2)&joy2_b12(1)&joy2_b12(0);		
 
 --  S start, A fireC, B fireA, C fireB(jump), Y select(pause)
 
@@ -313,8 +383,8 @@ guest : component NeoGeo_MiST
 			
 			-- Buttons
 			buttons => (                     	-- 0 = opens OSD
-			demistify_coin1 => joy1_b12(10),	-- X coin key
-			demistify_coin2 => joy2_b12(10),	
+			demistify_coin1 => joy1_b12(5),	    -- X coin key
+			demistify_coin2 => joy2_b12(5),	
 			-- demistify_start2 => '1',
 			-- demistify_start1 => '1',
 			others => '1'),
