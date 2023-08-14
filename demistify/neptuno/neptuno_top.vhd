@@ -280,21 +280,20 @@ begin
 		sega_strobe=> JOYP7_O
 	);	
 
+	-- Mode X Y Z Start A C B  Up Down Left Right
+	--  11 10 9 8   7   6 5 4   3  2     1    0    -- Z not working 
+
+	-- joya = fireD fireC start select fireB fireA R L D U		
 	joya <= joy1_b12(9)&joy1_b12(10) &joy1_b12(7) &joy1_b12(8) &joy1_b12(4)&joy1_b12(6)
 			&joy1_b12(0)&joy1_b12(1)&joy1_b12(2)&joy1_b12(3);
 	joyb <= joy2_b12(9)&joy2_b12(10) &joy2_b12(7) &joy2_b12(8) &joy2_b12(4)&joy2_b12(6)
 			&joy2_b12(0)&joy2_b12(1)&joy2_b12(2)&joy2_b12(3);	
 
-	-- Mode X Y Z Start A C B Right Left Down Up
-	--  11 10 9 8   7   6 5 4   3    2     1   0    -- Z not working 
+	-- @delgrom notes:
+	-- A, B, C, D NG en A, B, X, Y MD
+	-- Start NG, start MD y también C MD
+	-- Select NG en Mode MD y también en Z MD (muchos mandos chinos no llevan el select)
 
-	-- joya = fireD fireC start select fireB(jump) fireA R L D U
-	-- joya <= joy1_b12(8)&joy1_b12(6)&joy1_b12(7)&joy1_b12(9)&joy1_b12(5)&joy1_b12(4)&
-	-- 		joy1_b12(3)&joy1_b12(2)&joy1_b12(1)&joy1_b12(0);
-	-- joyb <= joy2_b12(8)&joy2_b12(6)&joy2_b12(7)&joy2_b12(9)&joy2_b12(5)&joy2_b12(4)&
-	-- 		joy2_b12(3)&joy2_b12(2)&joy2_b12(1)&joy2_b12(0);		
-
-	--  S start, A fireC, B fireA, C fireB(jump), Y select(pause)
 
 	-- I2S audio
 	audio_i2s : entity work.audio_top
