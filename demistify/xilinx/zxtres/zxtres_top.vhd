@@ -188,7 +188,7 @@ architecture RTL of zxtres_top is
 
 	signal act_led : std_logic;
 
-	signal CLK_50_buf : std_logic;
+	signal CLK_SYS : std_logic;
 	
 	alias clock_input 	: std_logic is CLK_50;
 	alias sigma_l : std_logic is PWM_AUDIO_L;
@@ -225,7 +225,7 @@ VGA_VS      <= vga_vsync;
 -- JOYSTICKS
 joy : component joydecoder_neptuno
 	port map(
-		clk_i         => CLK_50_buf,
+		clk_i         => CLK_SYS,
 		joy_data_i    => joy_data,
 		joy_clk_o     => joy_clk,
 		joy_load_o    => joy_load_n,
@@ -245,7 +245,7 @@ joy : component joydecoder_neptuno
 	
 sega : component joystick_sega
 	generic map(
-		CLK_SPEED=>50000
+		CLK_SPEED=>48000
 	)
 	port map(
 		joy0       => joy1fire2&joy1fire1&joy1up&joy1down&joy1left&joy1right,
@@ -255,12 +255,12 @@ sega : component joystick_sega
 		player1    => joy1_b12,
 		player2    => joy2_b12,
 		-- sega joystick
-		clk_i      => CLK_50_buf,
+		clk_i      => CLK_SYS,
 		sega_strobe=> joy_sel
 	);	
 
 -- Mode X Y Z Start A C B  Up Down Left Right
---  11 10 9 8   7   6 5 4   3  2     1    0    -- Z not working 
+--  11 10 9 8   7   6 5 4   3  2     1    0  
 
 -- joya = fireD fireC start select fireB fireA R L D U		
 joya <= joy1_b12(9)&joy1_b12(10) &joy1_b12(7) &joy1_b12(8) &joy1_b12(4)&joy1_b12(6)
@@ -268,16 +268,16 @@ joya <= joy1_b12(9)&joy1_b12(10) &joy1_b12(7) &joy1_b12(8) &joy1_b12(4)&joy1_b12
 joyb <= joy2_b12(9)&joy2_b12(10) &joy2_b12(7) &joy2_b12(8) &joy2_b12(4)&joy2_b12(6)
 		&joy2_b12(0)&joy2_b12(1)&joy2_b12(2)&joy2_b12(3);	
 
--- @delgrom notes:
--- A, B, C, D NG en A, B, X, Y MD
--- Start NG, start MD y también C MD
--- Select NG en Mode MD y también en Z MD (muchos mandos chinos no llevan el select)
+-- @delgrom notes (NG=NeoGeo, MD=MegaDrive)
+-- A, B, C, D NG => A, B, X, Y MD
+-- Start NG      => start MD y también C MD
+-- Select NG     => Mode MD y también en Z MD (muchos mandos chinos no llevan el select)
 
 
 -- I2S audio
 audio_i2s : entity work.audio_top
 	port map (
-		clk_50MHz => CLK_50_buf,
+		clk_50MHz => CLK_SYS,
 		dac_MCLK  => i2s_mclk,
 		dac_SCLK  => I2S_BCLK,
 		dac_SDIN  => I2S_DATA,
@@ -292,7 +292,7 @@ guest : component NeoGeo_MiST
 	port map
 	(
 		CLOCK_27   => clock_input,
-		CLOCK_27_buff => CLK_50_buf,
+		CLOCK_SYS  => CLK_SYS,
 
 		LED 	   => act_led,
 
@@ -351,7 +351,7 @@ guest : component NeoGeo_MiST
 			jtag_uart => false
 		)
 		port map(
-			clk       => CLK_50_buf,					--50 MHz
+			clk       => CLK_SYS,					--50 MHz
 			reset_in  => '1',							--reset_in  when 0
 			reset_out => reset_n,						--reset_out when 0
 
@@ -379,10 +379,10 @@ guest : component NeoGeo_MiST
 			
 			-- Buttons
 			buttons => (                     	-- 0 = opens OSD
-			demistify_coin1 => joy1_b12(5),	    -- X coin key
-			demistify_coin2 => joy2_b12(5),	
-			-- demistify_start2 => '1',
-			-- demistify_start1 => '1',
+			-- demistify_coin1  => joy1_b12(11),
+			-- demistify_coin2  => joy2_b12(11),	
+			-- demistify_start1 => joy1_b12(5),	
+			-- demistify_start2 => joy2_b12(5),	
 			others => '1'),
 
 			-- Joysticks

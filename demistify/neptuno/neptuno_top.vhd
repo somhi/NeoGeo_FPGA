@@ -281,7 +281,7 @@ begin
 	);	
 
 	-- Mode X Y Z Start A C B  Up Down Left Right
-	--  11 10 9 8   7   6 5 4   3  2     1    0    -- Z not working 
+	--  11 10 9 8   7   6 5 4   3  2     1    0 
 
 	-- joya = fireD fireC start select fireB fireA R L D U		
 	joya <= joy1_b12(9)&joy1_b12(10) &joy1_b12(7) &joy1_b12(8) &joy1_b12(4)&joy1_b12(6)
@@ -289,10 +289,10 @@ begin
 	joyb <= joy2_b12(9)&joy2_b12(10) &joy2_b12(7) &joy2_b12(8) &joy2_b12(4)&joy2_b12(6)
 			&joy2_b12(0)&joy2_b12(1)&joy2_b12(2)&joy2_b12(3);	
 
-	-- @delgrom notes:
-	-- A, B, C, D NG en A, B, X, Y MD
-	-- Start NG, start MD y también C MD
-	-- Select NG en Mode MD y también en Z MD (muchos mandos chinos no llevan el select)
+	-- @delgrom notes (NG=NeoGeo, MD=MegaDrive)
+	-- A, B, C, D NG => A, B, X, Y MD
+	-- Start NG      => start MD y también C MD
+	-- Select NG     => Mode MD y también en Z MD (muchos mandos chinos no llevan el select)
 
 
 	-- I2S audio
@@ -396,8 +396,8 @@ begin
 
 			-- Buttons
 			buttons => (0 => KEY(1), 			-- 0 => OSD_button
-			demistify_coin1 => joy1_b12(5),		-- X coin key
-			demistify_coin2 => joy2_b12(5),	
+			-- demistify_coin1 => joy1_b12(5),		-- X coin key
+			-- demistify_coin2 => joy2_b12(5),	
 			-- demistify_start2 => '1',
 			-- demistify_start1 => '1',
 			others => '1'),

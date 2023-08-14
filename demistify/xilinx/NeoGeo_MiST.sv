@@ -21,7 +21,7 @@ module NeoGeo_MiST(
     output [15:0] DAC_L,
     output [15:0] DAC_R,
 
-	output 		  CLOCK_27_buff,
+	output 		  CLOCK_SYS,
     `endif
 
 	output [12:0] SDRAM_A,
@@ -121,9 +121,11 @@ pll_mist pll			// Xilinx PLL
 	.reset(1'b0),              // input reset
 	.locked(pll_locked),       // output locked
 	// Clock in ports
-	.clk_in1(CLOCK_27),         // input  clk_in1
-	.clk_in1_pll(CLOCK_27_buff)	// output clk_in1 buffered
+	.clk_in1(CLOCK_27)         // input  clk_in1
+	//.clk_in1_pll(CLOCK_27_buff)	// output clk_in1 buffered
 );
+
+assign CLOCK_SYS = CLK_48M;
 
 wire [31:0] status;
 wire  [1:0] buttons;
@@ -164,7 +166,7 @@ user_io(
 	.conf_str       (CONF_STR       ),
 	.SPI_CLK        (SPI_SCK        ),
 	.SPI_SS_IO      (CONF_DATA0     ),
-	.SPI_MISO       (spi_do_uio         ),
+	.SPI_MISO       (spi_do_uio     ),
 	.SPI_MOSI       (SPI_DI         ),
 	.buttons        (buttons        ),
 	.switches       (switches       ),
