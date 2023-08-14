@@ -53,9 +53,9 @@ constant demistify_serialdebug : std_logic := '0';
 		PORT
 		(
 			CLOCK_27 	:	IN STD_LOGIC;	
-			CLOCK_SYS	:  	OUT STD_LOGIC;
+			CLOCK_27_buff	:  OUT STD_LOGIC;
 
-			LED		:	 OUT STD_LOGIC;
+			LED			:	 OUT STD_LOGIC;
 
 			SDRAM_DQ	:	 INOUT STD_LOGIC_VECTOR(15 DOWNTO 0);
 			SDRAM_A		:	 OUT STD_LOGIC_VECTOR(12 DOWNTO 0);

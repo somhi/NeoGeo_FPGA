@@ -188,7 +188,7 @@ architecture RTL of zxtres_top is
 
 	signal act_led : std_logic;
 
-	signal CLK_SYS : std_logic;
+	signal CLK_50_buf : std_logic;
 	
 	alias clock_input 	: std_logic is CLK_50;
 	alias sigma_l : std_logic is PWM_AUDIO_L;
@@ -225,7 +225,7 @@ VGA_VS      <= vga_vsync;
 -- JOYSTICKS
 joy : component joydecoder_neptuno
 	port map(
-		clk_i         => CLK_SYS,
+		clk_i         => CLK_50_buf,
 		joy_data_i    => joy_data,
 		joy_clk_o     => joy_clk,
 		joy_load_o    => joy_load_n,
@@ -245,7 +245,7 @@ joy : component joydecoder_neptuno
 	
 sega : component joystick_sega
 	generic map(
-		CLK_SPEED=>48000
+		CLK_SPEED=>50000
 	)
 	port map(
 		joy0       => joy1fire2&joy1fire1&joy1up&joy1down&joy1left&joy1right,
@@ -255,7 +255,7 @@ sega : component joystick_sega
 		player1    => joy1_b12,
 		player2    => joy2_b12,
 		-- sega joystick
-		clk_i      => CLK_SYS,
+		clk_i      => CLK_50_buf,
 		sega_strobe=> joy_sel
 	);	
 
@@ -277,7 +277,7 @@ joyb <= joy2_b12(9)&joy2_b12(10) &joy2_b12(7) &joy2_b12(8) &joy2_b12(4)&joy2_b12
 -- I2S audio
 audio_i2s : entity work.audio_top
 	port map (
-		clk_50MHz => CLK_SYS,
+		clk_50MHz => CLK_50_buf,
 		dac_MCLK  => i2s_mclk,
 		dac_SCLK  => I2S_BCLK,
 		dac_SDIN  => I2S_DATA,
@@ -292,7 +292,7 @@ guest : component NeoGeo_MiST
 	port map
 	(
 		CLOCK_27   => clock_input,
-		CLOCK_SYS  => CLK_SYS,
+		CLOCK_27_buff => CLK_50_buf,
 
 		LED 	   => act_led,
 
@@ -351,7 +351,7 @@ guest : component NeoGeo_MiST
 			jtag_uart => false
 		)
 		port map(
-			clk       => CLK_SYS,					--50 MHz
+			clk       => CLK_50_buf,					--50 MHz
 			reset_in  => '1',							--reset_in  when 0
 			reset_out => reset_n,						--reset_out when 0
 
@@ -379,10 +379,10 @@ guest : component NeoGeo_MiST
 			
 			-- Buttons
 			buttons => (                     	-- 0 = opens OSD
-			-- demistify_coin1  => joy1_b12(11),
-			-- demistify_coin2  => joy2_b12(11),	
-			-- demistify_start1 => joy1_b12(5),	
-			-- demistify_start2 => joy2_b12(5),	
+			-- demistify_coin1 => joy1_b12(5),	    -- X coin key
+			-- demistify_coin2 => joy2_b12(5),	
+			-- demistify_start2 => '1',
+			-- demistify_start1 => '1',
 			others => '1'),
 
 			-- Joysticks
