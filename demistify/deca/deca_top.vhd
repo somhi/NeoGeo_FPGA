@@ -168,26 +168,26 @@ architecture RTL of deca_top is
 	signal joy1_b12		: std_logic_vector(11 downto 0);
 	signal joy2_b12		: std_logic_vector(11 downto 0);
 	
-	component sega_joystick
-		port (
-		joy1_up_i : in std_logic;
-		joy1_down_i : in std_logic;
-		joy1_left_i : in std_logic;
-		joy1_right_i : in std_logic;
-		joy1_p6_i : in std_logic;
-		joy1_p9_i : in std_logic;
-		joy2_up_i : in std_logic;
-		joy2_down_i : in std_logic;
-		joy2_left_i : in std_logic;
-		joy2_right_i : in std_logic;
-		joy2_p6_i : in std_logic;
-		joy2_p9_i : in std_logic;
-		joyX_p7_o : out std_logic;
-		vga_hsync_n_s : in std_logic;
-		joy1_o : out std_logic_vector  (11 downto 0);
-		joy2_o : out std_logic_vector  (11 downto 0)
-	  );
+	component joystick_sega is
+		generic
+		(
+		  CLK_SPEED       : integer := 50000
+		);
+		port 
+		(
+			joy0 			: in std_logic_vector(5 downto 0);
+			joy1 			: in std_logic_vector(5 downto 0);
+			
+			-- fire12-1, up, down, left, right
+			player1			: out std_logic_vector(11 downto 0);
+			player2			: out std_logic_vector(11 downto 0);
+			
+			-- sega joystick
+			clk_i    		: in std_logic;
+			sega_strobe		: out std_logic
+		);
 	end component;
+	
 
 	-- DAC AUDIO
 	signal dac_l : signed(15 downto 0);
@@ -351,37 +351,38 @@ begin
 		);
 	end generate KEYBOARD_2;
 
-	sega_joystick_inst : sega_joystick
-		port map (
-			joy1_up_i => JOY1_UP,
-			joy1_down_i => JOY1_DOWN,
-			joy1_left_i => JOY1_LEFT,
-			joy1_right_i => JOY1_RIGHT,
-			joy1_p6_i => JOY1_B1_P6,
-			joy1_p9_i => JOY1_B2_P9,
-			joy2_up_i => '1',
-			joy2_down_i => '1',
-			joy2_left_i => '1',
-			joy2_right_i => '1',
-			joy2_p6_i => '1',
-			joy2_p9_i => '1',
-			joyX_p7_o => JOYX_SEL_O,
-			vga_hsync_n_s => vga_hsync,
-			joy1_o => joy1_b12,			 -- Z not working 
-			joy2_o => joy2_b12
-		);
+	sega : component joystick_sega
+		generic map(
+			CLK_SPEED=>50000
+		)
+		port map(
+			joy0       => JOY1_B2_P9 &JOY1_B1_P6 &JOY1_UP &JOY1_DOWN &JOY1_LEFT &JOY1_RIGHT,
+			joy1       => '1'&'1'&'1'&'1'&'1'&'1',
+			-- fire12-1, up, down, left,right
+			-- joy_s format MXYZ SACB UDLR
+			player1    => joy1_b12,
+			player2    => joy2_b12,
+			-- sega joystick
+			clk_i      => MAX10_CLK1_50,
+			sega_strobe=> JOYX_SEL_O
+		);	
+		
+	-- Mode X Y Z Start A C B  Up Down Left Right
+	--  11 10 9 8   7   6 5 4   3  2     1    0 
 
+	-- joya = fireD fireC start select fireB fireA R L D U		
+	joya <= joy1_b12(9) &joy1_b12(10) 			-- fireD fireC
+			&(joy1_b12(7) and joy1_b12(5))		-- start
+			&(joy1_b12(8) and joy1_b12(11))		-- select
+			&joy1_b12(4) &joy1_b12(6)			-- fireB fireA
+			&joy1_b12(0) &joy1_b12(1) &joy1_b12(2) &joy1_b12(3);	-- R L D U
 
-	-- Mode X Y Z Start A C B Right Left Down Up
-	--  11 10 9 8   7   6 5 4   3    2     1   0    -- Z not working 
-
-	-- joya <= fireD fireC start select fireB(jump) fireA R L D U
-
-    --  S start, A fireC, B fireA, C fireB(jump), Y select(pause)
-	joya <= joy1_b12(8)&joy1_b12(6)&joy1_b12(7)&joy1_b12(9)&joy1_b12(5)&joy1_b12(4)&
-			joy1_b12(3)&joy1_b12(2)&joy1_b12(1)&joy1_b12(0);
-	
 	joyb <= (others => '1');
+
+	-- @delgrom (NG=NeoGeo, MD=MegaDrive)
+	-- A, B, C, D NG => A, B, X, Y MD
+	-- Start NG      => start MD y también C MD
+	-- Select NG     => Mode MD y también en Z MD (muchos mandos chinos no llevan el select)
 
 
 	SD_SEL      <= '0'; -- 0 = 3.3V at sdcard   
@@ -556,8 +557,8 @@ begin
 
 			-- Buttons
 			buttons => (0 => KEY(1), 			-- 0 => OSD_button
-			demistify_coin1 => joy1_b12(10),	-- X coin key
-			demistify_coin2 => joy2_b12(10),	
+			-- demistify_coin1 => joy1_b12(10),	-- X coin key
+			-- demistify_coin2 => joy2_b12(10),	
 			-- demistify_start2 => '1',
 			-- demistify_start1 => '1',
 			others => '1'),
