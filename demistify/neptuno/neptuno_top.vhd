@@ -283,16 +283,23 @@ begin
 	-- Mode X Y Z Start A C B  Up Down Left Right
 	--  11 10 9 8   7   6 5 4   3  2     1    0 
 
-	-- joya = fireD fireC start select fireB fireA R L D U		
-	joya <= joy1_b12(9)&joy1_b12(10) &joy1_b12(7) &joy1_b12(8) &joy1_b12(4)&joy1_b12(6)
-			&joy1_b12(0)&joy1_b12(1)&joy1_b12(2)&joy1_b12(3);
-	joyb <= joy2_b12(9)&joy2_b12(10) &joy2_b12(7) &joy2_b12(8) &joy2_b12(4)&joy2_b12(6)
-			&joy2_b12(0)&joy2_b12(1)&joy2_b12(2)&joy2_b12(3);	
+-- joya = fireD fireC start select fireB fireA R L D U		
+joya <= joy1_b12(9) &joy1_b12(10) 			-- fireD fireC
+		&(joy1_b12(7) and joy1_b12(5))		-- start
+		&(joy1_b12(8) and joy1_b12(11))		-- select
+		&joy1_b12(4) &joy1_b12(6)			-- fireB fireA
+		&joy1_b12(0) &joy1_b12(1) &joy1_b12(2) &joy1_b12(3);	-- R L D U
 
-	-- @delgrom notes (NG=NeoGeo, MD=MegaDrive)
-	-- A, B, C, D NG => A, B, X, Y MD
-	-- Start NG      => start MD y también C MD
-	-- Select NG     => Mode MD y también en Z MD (muchos mandos chinos no llevan el select)
+joyb <= joy2_b12(9) &joy2_b12(10) 
+		&(joy2_b12(7) and joy2_b12(5)) 
+		&(joy2_b12(8) and joy2_b12(11))
+		&joy2_b12(4) &joy2_b12(6)
+		&joy2_b12(0) &joy2_b12(1) &joy2_b12(2) &joy2_b12(3);	
+
+-- @delgrom (NG=NeoGeo, MD=MegaDrive)
+-- A, B, C, D NG => A, B, X, Y MD
+-- Start NG      => start MD y también C MD
+-- Select NG     => Mode MD y también en Z MD (muchos mandos chinos no llevan el select)
 
 
 	-- I2S audio
