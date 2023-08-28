@@ -9,6 +9,9 @@ use work.demistify_config_pkg.all;
 -------------------------------------------------------------------------
 
 entity zxtres_top is
+	generic (
+		JOYSTICK_TYPE: natural := 1  -- 1=MEGADRIVE 6 buttons, 2= MEGADRIVE 3 buttons
+	);	
 	port (
 		CLK_50     : in std_logic;
 --		SW2        : in std_logic;
@@ -166,6 +169,24 @@ architecture RTL of zxtres_top is
 		);
 	end component;
 	
+	component joydecoder is
+		generic
+		(
+		  FRECCLKIN       : integer := 50
+		);
+		port 
+		(
+			clk             : in std_logic;
+		    joy_data        : in std_logic;
+			joy_clk         : out std_logic;
+			joy_load_n      : out std_logic;
+			reset           : in std_logic;
+			hsync_n_s       : in std_logic;
+			joy_select      : out std_logic; --Joy select for output to joyticks
+			joy1_o			: out std_logic_vector(11 downto 0); -- MXYZ SACB RLDU  Negative Logic
+			joy2_o			: out std_logic_vector(11 downto 0)  -- MXYZ SACB RLDU  Negative Logic
+		);
+	end component;
 
 	-- DAC AUDIO
 	signal dac_l : signed(15 downto 0);
@@ -221,8 +242,11 @@ VGA_B       <= vga_blue(7 downto 2) &vga_blue(7 downto 6);
 VGA_HS      <= vga_hsync;
 VGA_VS      <= vga_vsync;
 
-
 -- JOYSTICKS
+
+-- JOYSTICK_TYPE:  1=MEGADRIVE 6 buttons, 2= MEGADRIVE 3 buttons
+JOYSTICK_TYPE1 : if JOYSTICK_TYPE = 1 generate -- MEGADRIVE 6 buttons
+
 joy : component joydecoder_neptuno
 	port map(
 		clk_i         => CLK_50_buf,
@@ -279,6 +303,42 @@ joyb <= joy2_b12(9) &joy2_b12(10)
 -- A, B, C, D NG => A, B, X, Y MD
 -- Start NG      => start MD y también C MD
 -- Select NG     => Mode MD y también en Z MD (muchos mandos chinos no llevan el select)
+
+end generate JOYSTICK_TYPE1;
+
+
+JOYSTICK_TYPE2 : if JOYSTICK_TYPE = 2 generate -- MEGADRIVE 3 buttons
+
+joystick_megadrive : component joydecoder
+	generic map(
+		FRECCLKIN => 50
+	)
+	port map(
+		clk         => CLK_50_buf,
+		joy_data    => joy_data,
+		joy_clk     => joy_clk,
+		joy_load_n  => joy_load_n,
+		reset       => not reset_n,
+		hsync_n_s   => vga_hsync,
+		joy_select  => joy_sel,
+		joy1_o      => joy1_b12, -- MXYZ SACB RLDU  Negative Logic
+		joy2_o      => joy2_b12   -- MXYZ SACB RLDU  Negative Logic
+	);	
+	
+joya <= joy1_b12(9) & (joy1_b12(10) and joy1_b12(4))  -- fireD fireB
+    &joy1_b12(7)     					-- start
+    &(joy1_b12(8) and joy1_b12(11))    	-- select
+    &joy1_b12(5) &joy1_b12(6)      		-- fireC fireA
+    &joy1_b12(3 downto 0);  			-- R L D U
+
+joyb <= joy2_b12(9) & (joy2_b12(10)  and joy2_b12(4))  
+    &joy2_b12(7)
+    &(joy2_b12(8) and joy2_b12(11))
+    &joy2_b12(5) &joy2_b12(6)
+    &joy2_b12(3 downto 0);  			-- R L D U
+
+end generate JOYSTICK_TYPE2;
+	
 
 
 -- I2S audio
