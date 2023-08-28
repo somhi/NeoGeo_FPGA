@@ -4,6 +4,7 @@ PROJECT=NeoGeo
 PROJECTPATH=./
 PROJECTTOROOT=../
 BOARD=
+NO_CD=
 
 # firmware selection (without or with CD support)
 ifndef NO_CD
@@ -49,17 +50,21 @@ $(SUBMODULES): $(DEMISTIFYPATH)/EightThirtyTwo/Makefile
 	make -C $(DEMISTIFYPATH) -f bootstrap.mk
 
 .PHONY: firmware_cd
-firmware: $(SUBMODULES)
+firmware_cd: $(SUBMODULES)
 	make -C firmware_cd -f ../$(DEMISTIFYPATH)/firmware/Makefile DEMISTIFYPATH=../$(DEMISTIFYPATH) ROMSIZE1=$(ROMSIZE1) ROMSIZE2=$(ROMSIZE2) DETECTED_OS=$(DETECTED_OS)
 	rm -r firmware
-	cp firmware_cd firmware
+	cp -r firmware_cd firmware
+	rm demistify_config_pkg.vhd
+	cp demistify_config_pkg_cd.vhd demistify_config_pkg.vhd
 
 .PHONY: firmware_nocd
-firmware: $(SUBMODULES)
+firmware_nocd: $(SUBMODULES)
 	make -C firmware_nocd -f ../$(DEMISTIFYPATH)/firmware/Makefile DEMISTIFYPATH=../$(DEMISTIFYPATH) ROMSIZE1=$(ROMSIZE1) ROMSIZE2=$(ROMSIZE2) DETECTED_OS=$(DETECTED_OS)
 	rm -r firmware
-	cp firmware_nocd firmware
-
+	cp -r firmware_nocd firmware
+	rm demistify_config_pkg.vhd
+	cp demistify_config_pkg_nocd.vhd demistify_config_pkg.vhd
+	
 .PHONY: firmware_clean
 firmware_clean: $(SUBMODULES)
 	make -C firmware_cd -f ../$(DEMISTIFYPATH)/firmware/Makefile DEMISTIFYPATH=../$(DEMISTIFYPATH) ROMSIZE1=$(ROMSIZE1) ROMSIZE2=$(ROMSIZE2) DETECTED_OS=$(DETECTED_OS) clean
