@@ -5,4 +5,7 @@ set_global_assignment -name QIP_FILE [file join $::quartus(qip_path) ../common/p
 #
 set_global_assignment -name VERILOG_FILE  [file join $::quartus(qip_path) ../common/joystick/joydecoder_neptuno.v]
 set_global_assignment -name VHDL_FILE  [file join $::quartus(qip_path) ../common/joystick/joystick_sega.vhd]
-
+#
+set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) ../demistify_config_pkg_cd.vhd]
+set_global_assignment -name VHDL_FILE  [file join $::quartus(qip_path) ../firmware_cd/controller_rom1_byte.vhd]
+set_global_assignment -name VHDL_FILE  [file join $::quartus(qip_path) ../firmware_cd/controller_rom2_byte.vhd]

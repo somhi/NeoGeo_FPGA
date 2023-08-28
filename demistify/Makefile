@@ -18,7 +18,7 @@ else
 endif
 
 # Prevent MiST / MiSTer targets being built if the user supplied the BOARDS variable when invoking make.
-TARGETS_NOMIST=$(DEMISTIFYPATH)/site.template $(DEMISTIFYPATH)/site.mk $(SUBMODULES) $(TARGETS_CD) init compile tns
+TARGETS_NOMIST=$(DEMISTIFYPATH)/site.template $(DEMISTIFYPATH)/site.mk $(SUBMODULES) firmware init compile tns
 ifndef BOARDS
 	TARGETS = $(TARGETS_NOMIST) mist mister
 else
@@ -49,26 +49,21 @@ $(DEMISTIFYPATH)/EightThirtyTwo/Makefile:
 $(SUBMODULES): $(DEMISTIFYPATH)/EightThirtyTwo/Makefile
 	make -C $(DEMISTIFYPATH) -f bootstrap.mk
 
-.PHONY: firmware_cd
-firmware_cd: $(SUBMODULES)
-	make -C firmware_cd -f ../$(DEMISTIFYPATH)/firmware/Makefile DEMISTIFYPATH=../$(DEMISTIFYPATH) ROMSIZE1=$(ROMSIZE1) ROMSIZE2=$(ROMSIZE2) DETECTED_OS=$(DETECTED_OS)
-	rm -r firmware
-	cp -r firmware_cd firmware
-	rm demistify_config_pkg.vhd
-	cp demistify_config_pkg_cd.vhd demistify_config_pkg.vhd
-
-.PHONY: firmware_nocd
-firmware_nocd: $(SUBMODULES)
-	make -C firmware_nocd -f ../$(DEMISTIFYPATH)/firmware/Makefile DEMISTIFYPATH=../$(DEMISTIFYPATH) ROMSIZE1=$(ROMSIZE1) ROMSIZE2=$(ROMSIZE2) DETECTED_OS=$(DETECTED_OS)
-	rm -r firmware
-	cp -r firmware_nocd firmware
-	rm demistify_config_pkg.vhd
-	cp demistify_config_pkg_nocd.vhd demistify_config_pkg.vhd
+.PHONY: firmware
+firmware: $(SUBMODULES)
+	$(info *******************************************************)
+	$(info make NO_CD=1 generates firmware_nocd		      )
+	$(info make         generates firmware_cd	              )
+	$(info *******************************************************)
+	make -C $(TARGETS_CD) -f ../$(DEMISTIFYPATH)/firmware/Makefile DEMISTIFYPATH=../$(DEMISTIFYPATH) ROMSIZE1=$(ROMSIZE1) ROMSIZE2=$(ROMSIZE2) DETECTED_OS=$(DETECTED_OS)
 	
 .PHONY: firmware_clean
 firmware_clean: $(SUBMODULES)
-	make -C firmware_cd -f ../$(DEMISTIFYPATH)/firmware/Makefile DEMISTIFYPATH=../$(DEMISTIFYPATH) ROMSIZE1=$(ROMSIZE1) ROMSIZE2=$(ROMSIZE2) DETECTED_OS=$(DETECTED_OS) clean
-	make -C firmware_nocd -f ../$(DEMISTIFYPATH)/firmware/Makefile DEMISTIFYPATH=../$(DEMISTIFYPATH) ROMSIZE1=$(ROMSIZE1) ROMSIZE2=$(ROMSIZE2) DETECTED_OS=$(DETECTED_OS) clean	
+	$(info *******************************************************)
+	$(info make firmware_clean NO_CD=1 generates firmware_nocd    )
+	$(info make firmware_clean         generates firmware_cd      )	   
+	$(info *******************************************************)
+	make -C $(TARGETS_CD) -f ../$(DEMISTIFYPATH)/firmware/Makefile DEMISTIFYPATH=../$(DEMISTIFYPATH) ROMSIZE1=$(ROMSIZE1) ROMSIZE2=$(ROMSIZE2) DETECTED_OS=$(DETECTED_OS) clean
 
 .PHONY: init
 init:

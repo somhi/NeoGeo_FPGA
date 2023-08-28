@@ -4,3 +4,4 @@
 //`define CLK_SPEED 96000
 `define DEMISTIFY
 `define VIVADO
+//`define NO_CD

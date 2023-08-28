@@ -961,13 +961,13 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../firmware/controller_rom1_word.vhd">
+      <File Path="$PPRDIR/../../firmware_cd/controller_rom1_word.vhd">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../firmware/controller_rom2_word.vhd">
+      <File Path="$PPRDIR/../../firmware_cd/controller_rom2_word.vhd">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
