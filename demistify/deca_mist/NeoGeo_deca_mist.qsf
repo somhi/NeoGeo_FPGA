@@ -90,7 +90,6 @@ set_global_assignment -name PHYSICAL_SYNTHESIS_EFFORT NORMAL
 set_global_assignment -name VERILOG_SHOW_LMF_MAPPING_MESSAGES OFF
 set_global_assignment -name AUTO_RESOURCE_SHARING ON
 set_global_assignment -name FORCE_SYNCH_CLEAR ON
-set_global_assignment -name VERILOG_MACRO "VRAM32=1"
 
 set_location_assignment PIN_M9 -to ADC_CLK_10
 set_instance_assignment -name IO_STANDARD "2.5 V" -to ADC_CLK_10
@@ -378,6 +377,7 @@ set_global_assignment -name VERILOG_MACRO "DEMISTIFY_PARALLEL_AUDIO=1"
 set_global_assignment -name VERILOG_MACRO "DEMISTIFY_HDMI=1"
 set_global_assignment -name VERILOG_MACRO "DEMISTIFY_DECA_MIST=1"
 set_global_assignment -name VERILOG_MACRO "DEMISTIFY=1"
+set_global_assignment -name VERILOG_FILE defs.v
 set_global_assignment -name QIP_FILE top.qip
 set_global_assignment -name QIP_FILE ../mist/NeoGeo_MiST.qip
 set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:../mist/build_id.tcl"

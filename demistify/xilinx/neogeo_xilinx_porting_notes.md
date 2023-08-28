@@ -20,11 +20,9 @@ NeoGeo_MiST.sv  is now unified with rest of DeMiSTify ports.
 
 ### Todo
 
-* Two different firmwares? one for smaller boards without CD and another one with CD for bigger boards
-* https://github.com/mist-devel/mist-firmware/commit/a144de46fec375f401762cda99fe7e045d674ba8
-* Neogeo CD: Gyurco: (probably a NO_CD define will needed for some boards - however BRAM usage increase is mostly from the CDDA buffer, so CD could work if CDDA is disabled, or smaller buffer can be used. The firmware part could be based on the existing pcecd.c).
-* Gyurco: I think the data_io problem can be solved by adding some `ifdefs (like DATAIO_SPLIT_BUS) to the standard one (and do the same in mist_top). The dpram should work on Altera, too, so file duplication can be eliminated.
+* Neogeo CD: Gyurco: probably a NO_CD define will needed for some boards - however BRAM usage increase is mostly from the CDDA buffer, so CD could work if CDDA is disabled, or smaller buffer can be used. The firmware part could be based on the existing pcecd.c.
 * Gyurco: Another improvement would be for boards with large internal RAM: move the whole VRAM and LO ROM into BRAM (and undefine VRAM32). That would be a fairly easy task, the original BRAM definitions are still in neogeo_top, just commented out.
+* Gyurco: I think the data_io problem can be solved by adding some `ifdefs (like DATAIO_SPLIT_BUS) to the standard one (and do the same in mist_top). The dpram should work on Altera, too, so file duplication can be eliminated.
 * adapt constraints file eightthirtytwo_multicycles.sdc
 * check errors from xilinx/NeoGeo.sdc
 
