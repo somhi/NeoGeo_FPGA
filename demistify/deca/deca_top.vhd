@@ -371,18 +371,18 @@ begin
 	--  11 10 9 8   7   6 5 4   3  2     1    0 
 
 	-- joya = fireD fireC start select fireB fireA R L D U		
-	joya <= joy1_b12(9) &joy1_b12(10) 			-- fireD fireC
-			&(joy1_b12(7) and joy1_b12(5))		-- start
-			&(joy1_b12(8) and joy1_b12(11))		-- select
-			&joy1_b12(4) &joy1_b12(6)			-- fireB fireA
+	joya <= joy1_b12(9) & (joy1_b12(10) and joy1_b12(5)) 			-- fireD fireC
+			&joy1_b12(7)											-- start
+			&(joy1_b12(8) and joy1_b12(11))							-- select
+			&joy1_b12(4) &joy1_b12(6)								-- fireB fireA
 			&joy1_b12(0) &joy1_b12(1) &joy1_b12(2) &joy1_b12(3);	-- R L D U
 
 	joyb <= (others => '1');
 
-	-- @delgrom (NG=NeoGeo, MD=MegaDrive)
-	-- A, B, C, D NG => A, B, X, Y MD
-	-- Start NG      => start MD y también C MD
-	-- Select NG     => Mode MD y también en Z MD (muchos mandos chinos no llevan el select)
+	-- NG=NeoGeo   =>  MD=MegaDrive
+	-- A, B, C, D  =>  A, B, (X and C), Y 
+	-- Start       =>  Start
+	-- Select      =>  Mode and Z (many chinese gamepads do not have select button)
 
 
 	SD_SEL      <= '0'; -- 0 = 3.3V at sdcard   
