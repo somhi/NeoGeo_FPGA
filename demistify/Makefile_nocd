@@ -4,20 +4,11 @@ PROJECT=NeoGeo
 PROJECTPATH=./
 PROJECTTOROOT=../
 BOARD=
-
-# firmware selection (without or with CD support)
-ifndef NO_CD
-	ROMSIZE1=16384
-	ROMSIZE2=8192
-	TARGETS_CD=firmware_cd
-else
-	ROMSIZE1=8192
-	ROMSIZE2=4096
-	TARGETS_CD=firmware_nocd
-endif
+ROMSIZE1=8192
+ROMSIZE2=4096
 
 # Prevent MiST / MiSTer targets being built if the user supplied the BOARDS variable when invoking make.
-TARGETS_NOMIST=$(DEMISTIFYPATH)/site.template $(DEMISTIFYPATH)/site.mk $(SUBMODULES) $(TARGETS_CD) init compile tns
+TARGETS_NOMIST=$(DEMISTIFYPATH)/site.template $(DEMISTIFYPATH)/site.mk $(SUBMODULES) firmware init compile tns
 ifndef BOARDS
 	TARGETS = $(TARGETS_NOMIST) mist mister
 else
@@ -48,22 +39,13 @@ $(DEMISTIFYPATH)/EightThirtyTwo/Makefile:
 $(SUBMODULES): $(DEMISTIFYPATH)/EightThirtyTwo/Makefile
 	make -C $(DEMISTIFYPATH) -f bootstrap.mk
 
-.PHONY: firmware_cd
-firmware: $(SUBMODULES)
-	make -C firmware_cd -f ../$(DEMISTIFYPATH)/firmware/Makefile DEMISTIFYPATH=../$(DEMISTIFYPATH) ROMSIZE1=$(ROMSIZE1) ROMSIZE2=$(ROMSIZE2) DETECTED_OS=$(DETECTED_OS)
-	rm -r firmware
-	cp firmware_cd firmware
-
-.PHONY: firmware_nocd
+.PHONY: firmware
 firmware: $(SUBMODULES)
 	make -C firmware_nocd -f ../$(DEMISTIFYPATH)/firmware/Makefile DEMISTIFYPATH=../$(DEMISTIFYPATH) ROMSIZE1=$(ROMSIZE1) ROMSIZE2=$(ROMSIZE2) DETECTED_OS=$(DETECTED_OS)
-	rm -r firmware
-	cp firmware_nocd firmware
 
 .PHONY: firmware_clean
 firmware_clean: $(SUBMODULES)
-	make -C firmware_cd -f ../$(DEMISTIFYPATH)/firmware/Makefile DEMISTIFYPATH=../$(DEMISTIFYPATH) ROMSIZE1=$(ROMSIZE1) ROMSIZE2=$(ROMSIZE2) DETECTED_OS=$(DETECTED_OS) clean
-	make -C firmware_nocd -f ../$(DEMISTIFYPATH)/firmware/Makefile DEMISTIFYPATH=../$(DEMISTIFYPATH) ROMSIZE1=$(ROMSIZE1) ROMSIZE2=$(ROMSIZE2) DETECTED_OS=$(DETECTED_OS) clean	
+	make -C firmware_nocd -f ../$(DEMISTIFYPATH)/firmware/Makefile DEMISTIFYPATH=../$(DEMISTIFYPATH) ROMSIZE1=$(ROMSIZE1) ROMSIZE2=$(ROMSIZE2) DETECTED_OS=$(DETECTED_OS) clean
 
 .PHONY: init
 init:
