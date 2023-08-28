@@ -21,7 +21,9 @@ NeoGeo_MiST.sv  is now unified with rest of DeMiSTify ports.
 ### Todo
 
 * Neogeo CD: Gyurco: probably a NO_CD define will needed for some boards - however BRAM usage increase is mostly from the CDDA buffer, so CD could work if CDDA is disabled, or smaller buffer can be used. The firmware part could be based on the existing pcecd.c.
-* Gyurco: Another improvement would be for boards with large internal RAM: move the whole VRAM and LO ROM into BRAM (and undefine VRAM32). That would be a fairly easy task, the original BRAM definitions are still in neogeo_top, just commented out.
+* Gyurco: Another improvement would be for boards with large internal RAM: move the whole VRAM and LOROM into BRAM (and undefine VRAM32). That would be a fairly easy task, the original BRAM definitions are still in neogeo_top, just commented out.  Benefits: 
+  - Good feeling because using the original behavior of the LSPC2 (LO ROM and VRAM address/data travels on PBUS)
+  - Probably less wait states on CPU access
 * Gyurco: I think the data_io problem can be solved by adding some `ifdefs (like DATAIO_SPLIT_BUS) to the standard one (and do the same in mist_top). The dpram should work on Altera, too, so file duplication can be eliminated.
 * adapt constraints file eightthirtytwo_multicycles.sdc
 * check errors from xilinx/NeoGeo.sdc

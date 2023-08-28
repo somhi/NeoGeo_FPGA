@@ -901,7 +901,7 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../demistify_config_pkg.vhd">
+      <File Path="$PPRDIR/../demistify_config_pkg_nocd.vhd">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
@@ -937,13 +937,13 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../firmware_cd/controller_rom1_word.vhd">
+      <File Path="$PPRDIR/../firmware_nocd/controller_rom1_word.vhd">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../firmware_cd/controller_rom2_word.vhd">
+      <File Path="$PPRDIR/../firmware_nocd/controller_rom2_word.vhd">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
