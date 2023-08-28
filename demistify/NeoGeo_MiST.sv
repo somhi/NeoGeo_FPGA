@@ -65,11 +65,15 @@ localparam CONF_STR = {
 	"S0U,SAV,Load Memory Card;",
 	"TG,Save Memory Card;",
 `endif
+`ifdef NO_CD
+	"O1,System Type,Console(AES),Arcade(MVS);",
+`else
 	"SC,CUE,Mount CD;",
 	"O12,System Type,Console(AES),Arcade(MVS),CD,CDZ;",
 	"OKL,CD Speed,1x,2x,3x,4x;",
 	"OHI,CD Region,US,EU,JP,AS;",
 	"OJ,CD Lid,Closed,Opened;",
+`endif
 	"O3,Video Mode,NTSC,PAL;",
 	"O45,Scanlines,Off,25%,50%,75%;",
 	"O7,Blending,Off,On;",

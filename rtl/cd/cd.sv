@@ -151,6 +151,7 @@ module cd_sys(
 		.CDC_nIRQ(CDC_nIRQ)
 	);
 
+	`ifndef NO_CD
 	cdda CDDA(
 		.CLK(clk_sys),
 		.nRESET(nRESET),
@@ -161,7 +162,7 @@ module cd_sys(
 		.AUDIO_R(CD_AUDIO_R),
 		.WRITE_READY(CDDA_WR_READY)
 	);
-
+	`endif
 
 	localparam SECTOR_TIME_1X = MCLK / 75;
 	localparam SECTOR_TIME_2X = MCLK / 150;
@@ -197,6 +198,7 @@ module cd_sys(
 	wire CACHE_WR = CACHE_WR_EN & (CD_DATA_WR_START | FORCE_WR);
 	wire [7:0] CACHE_DOUT;
 
+	`ifndef NO_CD
 	dpram #(12,8) CACHE(
 	.clock_a(clk_sys),
 	.address_a( {CACHE_WR_BANK, CACHE_WR_ADDR} ),
@@ -207,7 +209,8 @@ module cd_sys(
 	.address_b( {CACHE_RD_BANK, CACHE_RD_ADDR} ),
 	.wren_b(0),
 	.q_b(CACHE_DOUT)
-);
+	);
+	`endif
 
 	localparam DMA_STATE_IDLE = 4'd0, DMA_STATE_BR = 4'd1, DMA_STATE_WAIT_BG = 4'd2,
 	           DMA_STATE_WAIT_AS = 4'd3, DMA_STATE_START = 4'd4,

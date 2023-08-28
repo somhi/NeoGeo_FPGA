@@ -357,8 +357,6 @@ CEGen CEGEN_CDDA_CLK
 	.CE(CDDA_CLK)
 );
 
-
-`ifndef NO_CD
 cd_sys #(.MCLK(48000000)) cdsystem(
 	.nRESET(nRESET),
 	.clk_sys(CLK_48M), .CLK_68KCLK_EN(CLK_EN_68K_P),
@@ -399,7 +397,6 @@ cd_sys #(.MCLK(48000000)) cdsystem(
 	.DMA_ADDR_OUT(DMA_ADDR_OUT),	// Used for writing
 	.DMA_SDRAM_BUSY(DMA_SDRAM_BUSY)
 );
-`endif
 
 // The P1 zone is writable on the Neo CD
 // Is there a write enable register for it ?
