@@ -56,3 +56,6 @@ controller.map
 *.srcs
 *.bit
 *.bin
+a100t_cape
+neptuno_mist
+deca_mist
