@@ -6,4 +6,4 @@ FPGA platforms:
 
 - [MiSTer Platform](mister/README.md)
 - [MiST Board](mist/README.md)
-- [Turbo Chameleon 64 and other platforms supported by DeMiSTify](demistify/README_DeMiSTify.md)
+- [DeMiSTify Platforms](demistify/README.md)

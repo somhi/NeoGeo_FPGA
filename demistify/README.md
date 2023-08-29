@@ -6,6 +6,8 @@ Ported to MiST by Gyorgy Szombathelyi
 
 Ported to Turbo Chameleon 64 by A. M. Robinson
 
+Ported to ZXTRES, NeptUNO, Deca by Somhi
+
 
 ## Limitations
 The original Neo Geo system has big RAM/ROM memories, which don't fit into the BRAM of the MiST's FPGA. A new SDRAM controller was written, which can
@@ -26,10 +28,11 @@ TerraOnion .NEO file format was choosen as the supported cart format, as it conv
 
 [Original NeoBuilder tool](https://wiki.terraonion.com/index.php/Neobuilder_Guide)
 
+[MAME to .neo conversion tool](https://github.com/city41/neosdconv)
+
 [Darksoft to .neo conversion tool](https://gitlab.com/loic.petit/darksoft-to-neosd/)
 
-[MAME to .neo conversion tool](https://github.com/city41/neosdconv) - please note many MAME Neo Geo ROMs are encrypted, and these are not supported by the core, so it's recommended to use the Darksoft collection instead.
-
+Note: Core doesn't support encrypted ROMs. Make sure the ROM has no encrypted parts before use. MAME ROM pack includes many encrypted ROMs so it's not recommended for inexperienced users. Using the .neo conversion tool with a MAME ROM set will result in some ROMs still being encrypted. There is an alternate .neo conversion tool for the Darksoft ROM set that will give you a fully decrypted set.
 
 ## Controls
 
@@ -83,4 +86,3 @@ At the end, the core's HDL was converted into synchronous code, using a simulato
 and all generated clock usages were removed.
 
 Thanks to all who supported this conversion!
-
