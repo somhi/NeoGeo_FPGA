@@ -6,3 +6,4 @@ FPGA platforms:
 
 - [MiSTer Platform](mister/README.md)
 - [MiST Board](mist/README.md)
+- [DeMiSTify Platforms](demistify/README.md)

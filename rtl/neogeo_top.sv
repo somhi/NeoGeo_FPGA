@@ -357,6 +357,11 @@ CEGen CEGEN_CDDA_CLK
 	.CE(CDDA_CLK)
 );
 
+
+`ifdef NO_CD
+assign nBR = 1'b1;
+assign nBGACK  = 1'b1;
+`else
 cd_sys #(.MCLK(48000000)) cdsystem(
 	.nRESET(nRESET),
 	.clk_sys(CLK_48M), .CLK_68KCLK_EN(CLK_EN_68K_P),
@@ -397,6 +402,7 @@ cd_sys #(.MCLK(48000000)) cdsystem(
 	.DMA_ADDR_OUT(DMA_ADDR_OUT),	// Used for writing
 	.DMA_SDRAM_BUSY(DMA_SDRAM_BUSY)
 );
+`endif
 
 // The P1 zone is writable on the Neo CD
 // Is there a write enable register for it ?
@@ -613,6 +619,11 @@ assign SRAM_WE = ~&{nBWU, nBWL};
 assign SRAM_RD = ~&{nSRAMOEU, nSRAMOEL} & SYSTEM_MVS;
 assign SRAM_OUT = PROM_DATA;
 
+`ifdef DEMISTIFY_NO_MEMCARD
+// Memory card
+assign {nCD1, nCD2} = 2'b11;
+
+`else
 // Memory card
 assign {nCD1, nCD2} = {2{~MEMCARD_EN & ~SYSTEM_CDx}};	// Always plugged in CD systems
 assign CARD_WE = (SYSTEM_CDx | (~nCARDWEN & CARDWENB)) & ~nCRDW;
@@ -631,6 +642,7 @@ memcard MEMCARD(
 	.memcard_din(MEMCARD_DIN),
 	.memcard_dout(MEMCARD_DOUT)
 );
+`endif
 
 /*
 // CA4's polarity depends on the tile's h-flip attribute
