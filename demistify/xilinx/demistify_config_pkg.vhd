@@ -53,9 +53,9 @@ constant demistify_serialdebug : std_logic := '0';
 		PORT
 		(
 			CLOCK_27 	:	IN STD_LOGIC;	
-			CLOCK_27_buff	:  OUT STD_LOGIC;
+			CLOCK_27_buff	:  	OUT STD_LOGIC;
 
-			LED			:	 OUT STD_LOGIC;
+			LED		:	 OUT STD_LOGIC;
 
 			SDRAM_DQ	:	 INOUT STD_LOGIC_VECTOR(15 DOWNTO 0);
 			SDRAM_A		:	 OUT STD_LOGIC_VECTOR(12 DOWNTO 0);
@@ -69,9 +69,9 @@ constant demistify_serialdebug : std_logic := '0';
 			SDRAM_CLK	:	 OUT STD_LOGIC;
 			SDRAM_CKE	:	 OUT STD_LOGIC;
 
-			--SPI_DO		:	 INOUT STD_LOGIC;
-			SPI_DO			:	 OUT STD_LOGIC;
-			SPI_DO_IN		:	 IN STD_LOGIC;
+			--SPI_DO	:	 INOUT STD_LOGIC;
+			SPI_DO		:	 OUT STD_LOGIC;
+			SPI_DO_IN	:	 IN STD_LOGIC;
 			SPI_DI		:	 IN STD_LOGIC;
 			SPI_SCK		:	 IN STD_LOGIC;
 			SPI_SS2		:	 IN STD_LOGIC;
@@ -81,15 +81,16 @@ constant demistify_serialdebug : std_logic := '0';
 
 			VGA_HS		:	 OUT STD_LOGIC;
 			VGA_VS		:	 OUT STD_LOGIC;
-			VGA_R		:	 OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
-			VGA_G		:	 OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
-			VGA_B		:	 OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
+			VGA_R		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+			VGA_G		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+			VGA_B		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
 			
 			AUDIO_L  	: 	OUT STD_LOGIC;
 			AUDIO_R  	: 	OUT STD_LOGIC;
 			--D AUDIO 
-			DAC_L       : 	OUT SIGNED(15 downto 0);
-			DAC_R       : 	OUT SIGNED(15 downto 0)   
+			I2S_BCK  	: 	OUT STD_LOGIC;
+			I2S_LRCK  	: 	OUT STD_LOGIC;
+			I2S_DATA  	: 	OUT STD_LOGIC 
 		);
 	END COMPONENT;
 	

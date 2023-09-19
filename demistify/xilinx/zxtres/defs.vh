@@ -5,3 +5,5 @@
 `define DEMISTIFY
 `define VIVADO
 `define NO_CD
+`define I2S_AUDIO 1
+`define VGA_8BIT 1

@@ -271,12 +271,14 @@ set_global_assignment -name VERILOG_SHOW_LMF_MAPPING_MESSAGES OFF
 set_global_assignment -name AUTO_RESOURCE_SHARING ON
 set_global_assignment -name FORCE_SYNCH_CLEAR ON
 #set_global_assignment -name VERILOG_MACRO "VRAM32=1"
+set_global_assignment -name VERILOG_MACRO "DEMISTIFY=1"
 set_global_assignment -name VERILOG_FILE defs.v
 set_global_assignment -name SDC_FILE NeoGeo.sdc
 set_global_assignment -name SYSTEMVERILOG_FILE NeoGeo_MiST.sv
-set_global_assignment -name QIP_FILE "../mist/mist-modules/mist.qip"
+set_global_assignment -name VERILOG_FILE ../../mist/i2s.v
+set_global_assignment -name QIP_FILE "../../mist/mist-modules/mist.qip"
 set_global_assignment -name QIP_FILE pll_mist.qip
-set_global_assignment -name QIP_FILE ../rtl/neogeo.qip
+set_global_assignment -name QIP_FILE ../../rtl/neogeo.qip
 set_global_assignment -name SIGNALTAP_FILE output_files/cpu.stp
 set_global_assignment -name SIGNALTAP_FILE output_files/cpu2.stp
 set_global_assignment -name SIGNALTAP_FILE output_files/ctrls.stp

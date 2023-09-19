@@ -43,8 +43,8 @@ module deca_mist_top (
     output AUDIO_SPI_SELECT,
 
     //VIDEO
-    output 	      VGA_HS,
-    output 	      VGA_VS,
+    output 	  VGA_HS,
+    output 	  VGA_VS,
     output [3:0]  VGA_R,
     output [3:0]  VGA_G,
     output [3:0]  VGA_B,
@@ -95,8 +95,9 @@ module deca_mist_top (
     .AUDIO_L  	(UART_RXD),	//pin DETO1_PMOD2_6
     .AUDIO_R  	(UART_TXD),	//pin DETO2_PMOD2_7
     
-    .DAC_L       (dac_l),
-    .DAC_R       (dac_r),
+    .I2S_BCK    (I2S_SCK)
+    .I2S_LRCK   (I2S_LR)
+    .I2S_DATA   (I2S_D)
 
     .VGA_HS		  (VGA_HS),
     .VGA_VS		  (VGA_VS),
@@ -132,15 +133,6 @@ module deca_mist_top (
     .iDOUT		  (AUDIO_MISO_MFP4)   //SPI serial data input
   );
 
-  audio_top audio_i2s
-  (
-    .clk_50MHz (MAX10_CLK1_50),
-    .dac_MCLK  (I2S_MCK),
-    .dac_LRCK  (I2S_LR),
-    .dac_SCLK  (I2S_SCK),
-    .dac_SDIN  (I2S_D),
-    .L_data    (dac_l),
-    .R_data    (dac_r)
-  );
+  assign I2S_MCK = MAX10_CLK1_50;
 
 endmodule

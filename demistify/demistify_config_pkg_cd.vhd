@@ -53,7 +53,7 @@ constant demistify_serialdebug : std_logic := '0';
 		PORT
 		(
 			CLOCK_27 	:	IN STD_LOGIC;	
-			LED			:	 OUT STD_LOGIC;
+			LED		:	 OUT STD_LOGIC;
 
 			SDRAM_DQ	:	 INOUT STD_LOGIC_VECTOR(15 DOWNTO 0);
 			SDRAM_A		:	 OUT STD_LOGIC_VECTOR(12 DOWNTO 0);
@@ -84,8 +84,10 @@ constant demistify_serialdebug : std_logic := '0';
 			AUDIO_L  	: 	OUT STD_LOGIC;
 			AUDIO_R  	: 	OUT STD_LOGIC;
 			--D AUDIO 
-			DAC_L       : 	OUT SIGNED(15 downto 0);
-			DAC_R       : 	OUT SIGNED(15 downto 0)   
+			I2S_BCK  	: 	OUT STD_LOGIC;
+			I2S_LRCK  	: 	OUT STD_LOGIC;
+			I2S_DATA  	: 	OUT STD_LOGIC					
+
 		);
 	END COMPONENT;
 	

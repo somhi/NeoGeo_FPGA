@@ -18,7 +18,7 @@
 #
 # Quartus Prime
 # Version 17.1.0 Build 590 10/25/2017 SJ Lite Edition
-# Date created = 19:28:28  August 30, 2023
+# Date created = 22:44:49  September 18, 2023
 #
 # -------------------------------------------------------------------------- #
 #
@@ -40,7 +40,7 @@ set_global_assignment -name FAMILY "MAX 10"
 set_global_assignment -name DEVICE 10M50DAF484C6GES
 set_global_assignment -name TOP_LEVEL_ENTITY deca_top
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 17.1.0
-set_global_assignment -name PROJECT_CREATION_TIME_DATE "19:28:28  AUGUST 30, 2023"
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "22:44:49  SEPTEMBER 18, 2023"
 set_global_assignment -name LAST_QUARTUS_VERSION "17.1.0 Lite Edition"
 set_global_assignment -name AUTO_MERGE_PLLS OFF
 set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
@@ -67,7 +67,6 @@ set_global_assignment -name CYCLONEII_OPTIMIZATION_TECHNIQUE SPEED
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
-set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
 set_location_assignment PIN_M9 -to ADC_CLK_10
 set_instance_assignment -name IO_STANDARD "2.5 V" -to ADC_CLK_10
 set_location_assignment PIN_M8 -to MAX10_CLK1_50
@@ -451,7 +450,7 @@ set_instance_assignment -name FAST_INPUT_REGISTER ON -to DRAM_DQ[15]
 set_global_assignment -name SDC_FILE ../DeMiSTify/Board/deca/constraints.sdc
 set_global_assignment -name VERILOG_FILE ../DeMiSTify/Board/deca/audio/AUDIO_SPI_CTL_RD.v
 set_global_assignment -name VERILOG_FILE ../DeMiSTify/Board/deca/audio/SPI_RAM.v
-set_global_assignment -name VHDL_FILE ../DeMiSTify/Board/deca/audio/audio_i2s.vhd
+#set_global_assignment -name VHDL_FILE ../DeMiSTify/Board/deca/audio/audio_i2s.vhd
 set_global_assignment -name VERILOG_FILE ../DeMiSTify/Board/deca/hdmi/I2C_Controller.v
 set_global_assignment -name VERILOG_FILE ../DeMiSTify/Board/deca/hdmi/I2C_HDMI_Config.v
 set_global_assignment -name VERILOG_FILE ../DeMiSTify/Board/deca/ulpi/ULPI_PS2.v
@@ -462,9 +461,13 @@ set_global_assignment -name VERILOG_MACRO "DEMISTIFY_DECA=1"
 set_global_assignment -name VERILOG_MACRO "DEMISTIFY=1"
 set_global_assignment -name QIP_FILE top.qip
 set_global_assignment -name SDC_FILE ../NeoGeo.sdc
-set_global_assignment -name SYSTEMVERILOG_FILE ../NeoGeo_MiST.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../mist/NeoGeo_MiST.sv
 set_global_assignment -name VERILOG_FILE ../../mist/data_io_neogeo.v
+set_global_assignment -name VERILOG_FILE ../../mist/i2s.v
 set_global_assignment -name QIP_FILE "../../mist/mist-modules/mist.qip"
 set_global_assignment -name QIP_FILE ../../rtl/neogeo.qip
 set_global_assignment -name QIP_FILE ../DeMiSTify/controller/controller.qip
 set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:../../mist/build_id.tcl"
+
+
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

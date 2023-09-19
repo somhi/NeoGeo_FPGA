@@ -1,7 +1,8 @@
 # files inherited from the guest core:
 NeoGeo.sdc
-NeoGeo_MiST.sv
+../NeoGeo_MiST.sv
 ../mist/data_io_neogeo.v
+../mist/i2s.v
 ../mist/mist-modules/mist.qip
 ../rtl/neogeo.qip
 

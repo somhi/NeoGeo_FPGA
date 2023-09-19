@@ -18,7 +18,7 @@
 #
 # Quartus Prime
 # Version 17.1.0 Build 590 10/25/2017 SJ Lite Edition
-# Date created = 17:51:34  August 29, 2023
+# Date created = 23:11:46  September 19, 2023
 #
 # -------------------------------------------------------------------------- #
 #
@@ -302,8 +302,9 @@ set_global_assignment -name VERILOG_MACRO "DEMISTIFY_PS2_KEYBOARD=1"
 set_global_assignment -name VERILOG_MACRO "DEMISTIFY=1"
 set_global_assignment -name QIP_FILE top.qip
 set_global_assignment -name SDC_FILE ../NeoGeo.sdc
-set_global_assignment -name SYSTEMVERILOG_FILE ../NeoGeo_MiST.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../NeoGeo_MiST.sv
 set_global_assignment -name VERILOG_FILE ../../mist/data_io_neogeo.v
+set_global_assignment -name VERILOG_FILE ../../mist/i2s.v
 set_global_assignment -name QIP_FILE "../../mist/mist-modules/mist.qip"
 set_global_assignment -name QIP_FILE ../../rtl/neogeo.qip
 set_global_assignment -name QIP_FILE ../DeMiSTify/controller/controller.qip

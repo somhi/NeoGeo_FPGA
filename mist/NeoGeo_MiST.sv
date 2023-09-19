@@ -8,7 +8,13 @@ module NeoGeo_MiST(
 	output        AUDIO_L,
 	output        AUDIO_R,
 	input         SPI_SCK,
+`ifdef VIVADO
+	output 		  CLOCK_27_buff,
+	input         SPI_DO_IN,
+	output        SPI_DO,	
+`else
 	inout         SPI_DO,
+`endif
 	input         SPI_DI,
 	input         SPI_SS2,
 	input         SPI_SS3,
@@ -79,7 +85,17 @@ localparam VGA_BITS = 8;
 localparam VGA_BITS = 6;
 `endif
 
+`ifdef VIVADO
+wire spi_do_uio;
+wire spi_do_dio;
+assign SPI_DO = CONF_DATA0 ? spi_do_dio : spi_do_uio; // DO comes from user_io when CONF_DATA0 is low
+`endif
+
+`ifdef VIVADO
+`include "build_id.vh" 
+`else
 `include "build_id.v" 
+`endif
 
 wire [6:0] core_mod;
 
@@ -87,11 +103,22 @@ wire [6:0] core_mod;
 
 localparam CONF_STR = {
 	"NEOGEO;;",
+`ifdef DEMISTIFY
+	"F,NEO,Load Cart;",
+	"F,NEO,Load Cart (skip ADPCM);",
+	"F,ROM,Load BIOS;",
+`else
 	"F1,NEO,Load Cart;",
 	"F2,NEO,Load Cart (skip ADPCM);",
 	"F3,ROM,Load BIOS;",
+`endif
+`ifndef DEMISTIFY_NO_MEMCARD
 	"S0U,SAV,Load Memory Card;",
 	"TG,Save Memory Card;",
+`endif
+`ifdef NO_CD
+	"O1,System Type,Console(AES),Arcade(MVS);",
+`else
 	"SC,CUE,Mount CD;",
 	"O12,System Type,Console(AES),Arcade(MVS),CD,CDZ;",
 
@@ -108,6 +135,7 @@ localparam CONF_STR = {
 	"OKL,CD Speed,1x,2x,3x,4x;",
 	"OHI,CD Region,US,EU,JP,AS;",
 	"OJ,CD Lid,Closed,Opened;",
+`endif
 	"O3,Video Mode,NTSC,PAL;",
 	"O45,Scanlines,Off,25%,50%,75%;",
 	"O7,Blending,Off,On;",
@@ -153,10 +181,41 @@ wire        spr_en = ~status[15];
 
 assign LED = ~ioctl_downl;
 assign SDRAM_CKE = 1; 
-assign SDRAM_CLK = CLK_96M;
 
 wire CLK_96M, CLK_48M;
 wire pll_locked;
+
+
+`ifdef DEMISTIFY
+
+`ifdef VIVADO
+pll_mist pll			// Xilinx PLL
+(
+	// Clock out ports
+	.clk_out1(SDRAM_CLK),        
+	.clk_out2(CLK_96M),    
+	.clk_out3(CLK_48M),          
+	// Status and control signals
+	.reset(1'b0),              // input reset
+	.locked(pll_locked),       // output locked
+	// Clock in ports
+	.clk_in1(CLOCK_27),         // input  clk_in1
+	.clk_in1_pll(CLOCK_27_buff)	// output clk_in1 buffered
+);
+
+`else
+pll_mist pll(
+	.inclk0(CLOCK_27),
+	.c0(SDRAM_CLK),
+//	.c0(CLK_96M),
+	.c1(CLK_96M),
+	.c2(CLK_48M),
+	.locked(pll_locked)
+);
+`endif
+
+`else
+assign SDRAM_CLK = CLK_96M;
 pll_mist pll(
 	.inclk0(CLOCK_27),
 //	.c0(SDRAM_CLK),
@@ -165,6 +224,7 @@ pll_mist pll(
 	.c2(CLK_48M),
 	.locked(pll_locked)
 	);
+`endif
 
 wire [31:0] status;
 wire  [1:0] buttons;
@@ -205,7 +265,11 @@ user_io(
 	.conf_str       (CONF_STR       ),
 	.SPI_CLK        (SPI_SCK        ),
 	.SPI_SS_IO      (CONF_DATA0     ),
+`ifdef VIVADO
+	.SPI_MISO       (spi_do_uio     ),
+`else
 	.SPI_MISO       (SPI_DO         ),
+`endif
 	.SPI_MOSI       (SPI_DI         ),
 	.buttons        (buttons        ),
 	.switches       (switches       ),
@@ -262,7 +326,12 @@ data_io #(.ROM_DIRECT_UPLOAD(DIRECT_UPLOAD), .USE_QSPI(QSPI)) data_io(
 	.SPI_SS4       ( SPI_SS4      ),
 `endif
 	.SPI_DI        ( SPI_DI       ),
+`ifdef VIVADO
+	.SPI_DO        ( spi_do_dio   ),
+	.SPI_DO_IN     ( SPI_DO_IN    ),
+`else
 	.SPI_DO        ( SPI_DO       ),
+`endif
 	.clkref_n      ( 1'b0         ),
 	.ioctl_download( ioctl_downl  ),
 	.ioctl_index   ( ioctl_index  ),
@@ -305,7 +374,11 @@ data_io_neogeo data_io_neogeo(
 	.SPI_SCK       ( SPI_SCK      ),
 	.SPI_SS2       ( SPI_SS2      ),
 	.SPI_DI        ( SPI_DI       ),
+`ifdef VIVADO
+	.SPI_DO        ( spi_do_dio   ),   //SPI_DO
+`else
 	.SPI_DO        ( SPI_DO       ),
+`endif
 	.reset         ( reset        ),
 
 	.CD_SPEED         ( cd_speed ),
