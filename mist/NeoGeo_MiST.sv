@@ -369,6 +369,7 @@ wire        CDD_COMMAND_SEND;
 wire [15:0] CD_AUDIO_L;
 wire [15:0] CD_AUDIO_R;
 
+`ifndef VIVADO	//For Vivado is needed some manual merging of SPI_DO from data_io and data_io_neogeo
 data_io_neogeo data_io_neogeo(
 	.clk_sys       ( CLK_48M      ),
 	.SPI_SCK       ( SPI_SCK      ),
@@ -394,6 +395,7 @@ data_io_neogeo data_io_neogeo(
 	.CDDA_WR          ( CDDA_WR ),
 	.CDDA_WR_READY    ( CDDA_WR_READY )
 );
+`endif
 
 
 wire        SYSTEM_ROMS;
