@@ -6,7 +6,8 @@ PROJECTTOROOT=../
 BOARD=
 CONFIG_CD=
 
-# firmware selection (without or with CD support)
+#make firmware CONFIG_CD=1
+# firmware selection (with or without CD support. No argument, default is firmware_nocd)
 ifndef CONFIG_CD
 	ROMSIZE1=8192
 	ROMSIZE2=4096

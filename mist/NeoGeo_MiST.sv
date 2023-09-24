@@ -103,15 +103,9 @@ wire [6:0] core_mod;
 
 localparam CONF_STR = {
 	"NEOGEO;;",
-`ifdef DEMISTIFY
-	"F,NEO,Load Cart;",
-	"F,NEO,Load Cart (skip ADPCM);",
-	"F,ROM,Load BIOS;",
-`else
 	"F1,NEO,Load Cart;",
 	"F2,NEO,Load Cart (skip ADPCM);",
 	"F3,ROM,Load BIOS;",
-`endif
 `ifndef DEMISTIFY_NO_MEMCARD
 	"S0U,SAV,Load Memory Card;",
 	"TG,Save Memory Card;",
