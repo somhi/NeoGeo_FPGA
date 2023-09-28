@@ -266,7 +266,7 @@ set_global_assignment -name VERILOG_MACRO "DEMISTIFY_NEPTUNO=1"
 set_global_assignment -name VERILOG_MACRO "DEMISTIFY=1"
 set_global_assignment -name QIP_FILE top.qip
 set_global_assignment -name SDC_FILE ../NeoGeo.sdc
-set_global_assignment -name SYSTEMVERILOG_FILE ../../NeoGeo_MiST.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../mist/NeoGeo_MiST.sv
 set_global_assignment -name VERILOG_FILE ../../mist/data_io_neogeo.v
 set_global_assignment -name VERILOG_FILE ../../mist/i2s.v
 set_global_assignment -name QIP_FILE "../../mist/mist-modules/mist.qip"
