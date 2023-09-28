@@ -18,14 +18,14 @@
 #
 # Quartus Prime
 # Version 17.1.0 Build 590 10/25/2017 SJ Lite Edition
-# Date created = 22:44:49  September 18, 2023
+# Date created = 22:39:24  June 08, 2023
 #
 # -------------------------------------------------------------------------- #
 #
 # Notes:
 #
 # 1) The default values for assignments are stored in the file:
-#		NeoGeo_deca_assignment_defaults.qdf
+#		NeoGeo_deca_mist_assignment_defaults.qdf
 #    If this file doesn't exist, see file:
 #		assignment_defaults.qdf
 #
@@ -38,9 +38,9 @@
 
 set_global_assignment -name FAMILY "MAX 10"
 set_global_assignment -name DEVICE 10M50DAF484C6GES
-set_global_assignment -name TOP_LEVEL_ENTITY deca_top
+set_global_assignment -name TOP_LEVEL_ENTITY deca_mist_top
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 17.1.0
-set_global_assignment -name PROJECT_CREATION_TIME_DATE "22:44:49  SEPTEMBER 18, 2023"
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "22:39:24  JUNE 08, 2023"
 set_global_assignment -name LAST_QUARTUS_VERSION "17.1.0 Lite Edition"
 set_global_assignment -name AUTO_MERGE_PLLS OFF
 set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
@@ -59,14 +59,38 @@ set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -fall
 set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -rise
 set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -fall
 set_global_assignment -name GENERATE_SVF_FILE ON
+set_global_assignment -name AUTO_GLOBAL_CLOCK ON
 set_global_assignment -name AUTO_RESTART_CONFIGURATION OFF
 set_global_assignment -name ENABLE_CONFIGURATION_PINS OFF
 set_global_assignment -name ENABLE_BOOT_SEL_PIN OFF
-set_global_assignment -name OPTIMIZATION_MODE "AGGRESSIVE PERFORMANCE"
-set_global_assignment -name CYCLONEII_OPTIMIZATION_TECHNIQUE SPEED
+set_global_assignment -name OPTIMIZATION_MODE BALANCED
+set_global_assignment -name CYCLONEII_OPTIMIZATION_TECHNIQUE BALANCED
+set_global_assignment -name AUTO_RAM_TO_LCELL_CONVERSION ON
+
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+
+set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
+set_global_assignment -name ALLOW_SYNCH_CTRL_USAGE ON
+set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
+set_global_assignment -name VHDL_SHOW_LMF_MAPPING_MESSAGES OFF
+
+set_global_assignment -name OPTIMIZE_HOLD_TIMING "ALL PATHS"
+set_global_assignment -name OPTIMIZE_MULTI_CORNER_TIMING ON
+set_global_assignment -name FITTER_EFFORT "STANDARD FIT"
+
+set_global_assignment -name FIT_ATTEMPTS_TO_SKIP 0
+
+set_global_assignment -name DSP_BLOCK_BALANCING "DSP BLOCKS"
+set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_RETIMING OFF
+set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_DUPLICATION OFF
+set_global_assignment -name AUTO_SHIFT_REGISTER_RECOGNITION OFF
+set_global_assignment -name PHYSICAL_SYNTHESIS_EFFORT NORMAL
+set_global_assignment -name VERILOG_SHOW_LMF_MAPPING_MESSAGES OFF
+set_global_assignment -name AUTO_RESOURCE_SHARING ON
+set_global_assignment -name FORCE_SYNCH_CLEAR ON
+
 set_location_assignment PIN_M9 -to ADC_CLK_10
 set_instance_assignment -name IO_STANDARD "2.5 V" -to ADC_CLK_10
 set_location_assignment PIN_M8 -to MAX10_CLK1_50
@@ -119,14 +143,19 @@ set_location_assignment PIN_AA2 -to PS2_MOUSE_CLK
 set_location_assignment PIN_U6 -to PS2_MOUSE_DAT
 set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to PS2_MOUSE_CLK
 set_location_assignment PIN_H4 -to EAR
-set_location_assignment PIN_Y19 -to SPI_CS0_CLKBD
 set_location_assignment PIN_W4 -to SPI_MOSI
 set_location_assignment PIN_R9 -to SPI_MISO_WSBD
 set_location_assignment PIN_P9 -to SPI_SCLK_DABD
-set_location_assignment PIN_Y18 -to UART_RXD
-set_location_assignment PIN_W18 -to UART_TXD
+set_location_assignment PIN_Y19 -to SPI_CS0_CLKBD
 set_location_assignment PIN_AA17 -to SPI_CS1
 set_location_assignment PIN_W3 -to SPI_CS2
+set_instance_assignment -name GLOBAL_SIGNAL "GLOBAL CLOCK" -to SPI_SCLK_DABD
+set_location_assignment PIN_W18 -to SPI_SS4
+set_location_assignment PIN_Y18 -to RESET_N
+set_location_assignment PIN_W9 -to UART_RXD
+set_location_assignment PIN_W5 -to UART_TXD
+set_location_assignment PIN_V17 -to DETO3_JOY_MUX
+set_location_assignment PIN_Y11 -to DETO4
 set_location_assignment PIN_J4 -to JOY1_B2_P9
 set_location_assignment PIN_H3 -to JOY1_B1_P6
 set_location_assignment PIN_J8 -to JOY1_UP
@@ -154,10 +183,6 @@ set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to JOY1_B1_P6
 set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to JOY1_B2_P9
 set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to JOY1_RIGHT
 set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to JOYX_SEL_O
-set_location_assignment PIN_W9 -to DETO1_PMOD2_6
-set_location_assignment PIN_W5 -to DETO2_PMOD2_7
-set_location_assignment PIN_V17 -to DETO3_JOY_MUX
-set_location_assignment PIN_Y11 -to DETO4
 set_location_assignment PIN_R14 -to I2S_SCK
 set_instance_assignment -name IO_STANDARD "1.5 V" -to I2S_SCK
 set_location_assignment PIN_P15 -to I2S_D
@@ -196,112 +221,7 @@ set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to SD_MISO_I
 set_location_assignment PIN_R20 -to SD_CS_N_O
 set_instance_assignment -name IO_STANDARD "1.5 V" -to SD_CS_N_O
 set_location_assignment PIN_P13 -to SD_SEL
-set_location_assignment PIN_H11 -to USB_CLKIN
-set_location_assignment PIN_F15 -to USB_DATA[7]
-set_location_assignment PIN_E15 -to USB_DATA[6]
-set_location_assignment PIN_D15 -to USB_DATA[5]
-set_location_assignment PIN_H14 -to USB_DATA[4]
-set_location_assignment PIN_E14 -to USB_DATA[3]
-set_location_assignment PIN_H13 -to USB_DATA[2]
-set_location_assignment PIN_E13 -to USB_DATA[1]
-set_location_assignment PIN_E12 -to USB_DATA[0]
-set_location_assignment PIN_H12 -to USB_NXT
-set_location_assignment PIN_J13 -to USB_DIR
-set_location_assignment PIN_J12 -to USB_STP
-set_location_assignment PIN_J11 -to USB_CS
-set_location_assignment PIN_E16 -to USB_RESET_n
-set_location_assignment PIN_D8 -to USB_FAULT_n
-set_instance_assignment -name IO_STANDARD "1.8 V" -to USB_CS
-set_instance_assignment -name IO_STANDARD "1.8 V" -to USB_DATA[0]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to USB_DATA[1]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to USB_DATA[2]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to USB_DATA[3]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to USB_DATA[4]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to USB_DATA[5]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to USB_DATA[6]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to USB_DATA[7]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to USB_DIR
-set_instance_assignment -name IO_STANDARD "1.8 V" -to USB_NXT
-set_instance_assignment -name IO_STANDARD "1.8 V" -to USB_RESET_n
-set_instance_assignment -name IO_STANDARD "1.8 V" -to USB_STP
-set_instance_assignment -name IO_STANDARD "1.2 V" -to USB_FAULT_n
-set_instance_assignment -name IO_STANDARD "1.2 V" -to USB_CLKIN
-set_location_assignment PIN_C10 -to HDMI_I2C_SCL
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_I2C_SCL
-set_location_assignment PIN_B15 -to HDMI_I2C_SDA
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_I2C_SDA
-set_location_assignment PIN_A9 -to HDMI_I2S[0]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_I2S[0]
-set_location_assignment PIN_A11 -to HDMI_I2S[1]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_I2S[1]
-set_location_assignment PIN_A8 -to HDMI_I2S[2]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_I2S[2]
-set_location_assignment PIN_B8 -to HDMI_I2S[3]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_I2S[3]
-set_location_assignment PIN_A10 -to HDMI_LRCLK
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_LRCLK
-set_location_assignment PIN_A7 -to HDMI_MCLK
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_MCLK
-set_location_assignment PIN_D12 -to HDMI_SCLK
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_SCLK
-set_location_assignment PIN_A20 -to HDMI_TX_CLK
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_CLK
-set_location_assignment PIN_C18 -to HDMI_TX_D[0]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[0]
-set_location_assignment PIN_D17 -to HDMI_TX_D[1]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[1]
-set_location_assignment PIN_C17 -to HDMI_TX_D[2]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[2]
-set_location_assignment PIN_C19 -to HDMI_TX_D[3]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[3]
-set_location_assignment PIN_D14 -to HDMI_TX_D[4]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[4]
-set_location_assignment PIN_B19 -to HDMI_TX_D[5]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[5]
-set_location_assignment PIN_D13 -to HDMI_TX_D[6]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[6]
-set_location_assignment PIN_A19 -to HDMI_TX_D[7]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[7]
-set_location_assignment PIN_C14 -to HDMI_TX_D[8]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[8]
-set_location_assignment PIN_A17 -to HDMI_TX_D[9]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[9]
-set_location_assignment PIN_B16 -to HDMI_TX_D[10]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[10]
-set_location_assignment PIN_C15 -to HDMI_TX_D[11]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[11]
-set_location_assignment PIN_A14 -to HDMI_TX_D[12]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[12]
-set_location_assignment PIN_A15 -to HDMI_TX_D[13]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[13]
-set_location_assignment PIN_A12 -to HDMI_TX_D[14]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[14]
-set_location_assignment PIN_A16 -to HDMI_TX_D[15]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[15]
-set_location_assignment PIN_A13 -to HDMI_TX_D[16]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[16]
-set_location_assignment PIN_C16 -to HDMI_TX_D[17]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[17]
-set_location_assignment PIN_C12 -to HDMI_TX_D[18]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[18]
-set_location_assignment PIN_B17 -to HDMI_TX_D[19]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[19]
-set_location_assignment PIN_B12 -to HDMI_TX_D[20]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[20]
-set_location_assignment PIN_B14 -to HDMI_TX_D[21]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[21]
-set_location_assignment PIN_A18 -to HDMI_TX_D[22]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[22]
-set_location_assignment PIN_C13 -to HDMI_TX_D[23]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_D[23]
-set_location_assignment PIN_C9 -to HDMI_TX_DE
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_DE
-set_location_assignment PIN_B11 -to HDMI_TX_HS
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_HS
-set_location_assignment PIN_B10 -to HDMI_TX_INT
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_INT
-set_location_assignment PIN_C11 -to HDMI_TX_VS
-set_instance_assignment -name IO_STANDARD "1.8 V" -to HDMI_TX_VS
+
 set_location_assignment PIN_Y17 -to DRAM_ADDR[0]
 set_location_assignment PIN_W14 -to DRAM_ADDR[1]
 set_location_assignment PIN_U15 -to DRAM_ADDR[2]
@@ -447,27 +367,17 @@ set_instance_assignment -name FAST_INPUT_REGISTER ON -to DRAM_DQ[12]
 set_instance_assignment -name FAST_INPUT_REGISTER ON -to DRAM_DQ[13]
 set_instance_assignment -name FAST_INPUT_REGISTER ON -to DRAM_DQ[14]
 set_instance_assignment -name FAST_INPUT_REGISTER ON -to DRAM_DQ[15]
-set_global_assignment -name SDC_FILE ../DeMiSTify/Board/deca/constraints.sdc
-set_global_assignment -name VERILOG_FILE ../DeMiSTify/Board/deca/audio/AUDIO_SPI_CTL_RD.v
-set_global_assignment -name VERILOG_FILE ../DeMiSTify/Board/deca/audio/SPI_RAM.v
-#set_global_assignment -name VHDL_FILE ../DeMiSTify/Board/deca/audio/audio_i2s.vhd
-set_global_assignment -name VERILOG_FILE ../DeMiSTify/Board/deca/hdmi/I2C_Controller.v
-set_global_assignment -name VERILOG_FILE ../DeMiSTify/Board/deca/hdmi/I2C_HDMI_Config.v
-set_global_assignment -name VERILOG_FILE ../DeMiSTify/Board/deca/ulpi/ULPI_PS2.v
-set_global_assignment -name QIP_FILE ../DeMiSTify/Board/deca/ulpi/PLL_PHASE90.qip
+set_global_assignment -name SDC_FILE ../DeMiSTify/Board/deca_mist/constraints.sdc
 set_global_assignment -name VERILOG_MACRO "DEMISTIFY_PARALLEL_AUDIO=1"
 set_global_assignment -name VERILOG_MACRO "DEMISTIFY_HDMI=1"
-set_global_assignment -name VERILOG_MACRO "DEMISTIFY_DECA=1"
+set_global_assignment -name VERILOG_MACRO "DEMISTIFY_DECA_MIST=1"
 set_global_assignment -name VERILOG_MACRO "DEMISTIFY=1"
+set_global_assignment -name VERILOG_FILE defs.v
 set_global_assignment -name QIP_FILE top.qip
-set_global_assignment -name SDC_FILE ../NeoGeo.sdc
+set_global_assignment -name VERILOG_FILE ../../mist/i2s.v
 set_global_assignment -name SYSTEMVERILOG_FILE ../../mist/NeoGeo_MiST.sv
 set_global_assignment -name VERILOG_FILE ../../mist/data_io_neogeo.v
-set_global_assignment -name VERILOG_FILE ../../mist/i2s.v
 set_global_assignment -name QIP_FILE "../../mist/mist-modules/mist.qip"
 set_global_assignment -name QIP_FILE ../../rtl/neogeo.qip
-set_global_assignment -name QIP_FILE ../DeMiSTify/controller/controller.qip
-set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:../../mist/build_id.tcl"
-
-
+set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:../mist/build_id.tcl"
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

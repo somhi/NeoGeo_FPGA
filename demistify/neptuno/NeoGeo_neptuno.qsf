@@ -18,7 +18,7 @@
 #
 # Quartus Prime
 # Version 17.1.0 Build 590 10/25/2017 SJ Lite Edition
-# Date created = 18:00:05  August 29, 2023
+# Date created = 23:23:34  September 19, 2023
 #
 # -------------------------------------------------------------------------- #
 #
@@ -40,7 +40,7 @@ set_global_assignment -name FAMILY "Cyclone IV E"
 set_global_assignment -name DEVICE EP4CE55F23C8
 set_global_assignment -name TOP_LEVEL_ENTITY neptuno_top
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 17.1.0
-set_global_assignment -name PROJECT_CREATION_TIME_DATE "18:00:05  AUGUST 29, 2023"
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "23:23:34  SEPTEMBER 19, 2023"
 set_global_assignment -name LAST_QUARTUS_VERSION "17.1.0 Lite Edition"
 set_global_assignment -name AUTO_MERGE_PLLS OFF
 set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
@@ -266,8 +266,9 @@ set_global_assignment -name VERILOG_MACRO "DEMISTIFY_NEPTUNO=1"
 set_global_assignment -name VERILOG_MACRO "DEMISTIFY=1"
 set_global_assignment -name QIP_FILE top.qip
 set_global_assignment -name SDC_FILE ../NeoGeo.sdc
-set_global_assignment -name SYSTEMVERILOG_FILE ../NeoGeo_MiST.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../mist/NeoGeo_MiST.sv
 set_global_assignment -name VERILOG_FILE ../../mist/data_io_neogeo.v
+set_global_assignment -name VERILOG_FILE ../../mist/i2s.v
 set_global_assignment -name QIP_FILE "../../mist/mist-modules/mist.qip"
 set_global_assignment -name QIP_FILE ../../rtl/neogeo.qip
 set_global_assignment -name QIP_FILE ../DeMiSTify/controller/controller.qip

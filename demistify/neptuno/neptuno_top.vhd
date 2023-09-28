@@ -120,13 +120,7 @@ architecture RTL of neptuno_top is
 	signal rs232_rxd : std_logic;
 	signal rs232_txd : std_logic;
 
-	-- DAC AUDIO
-	signal dac_l : signed(15 downto 0);
-	signal dac_r : signed(15 downto 0);
-
 	-- I2S 
-	signal i2s_mclk : std_logic;
-
 	component audio_top is
 		port (
 			clk_50MHz : in std_logic;  -- system clock
@@ -301,18 +295,6 @@ begin
 	-- Start       =>  Start
 	-- Select      =>  Mode and Z (many chinese gamepads do not have select button)
 
-	-- I2S audio
-	audio_i2s : entity work.audio_top
-		port map (
-			clk_50MHz => CLOCK_50_I,
-			dac_MCLK  => I2S_MCLK,
-			dac_SCLK  => I2S_BCLK,
-			dac_SDIN  => I2S_DATA,
-			dac_LRCK  => I2S_LRCLK,
-			L_data    => std_logic_vector(dac_l),
-			R_data    => std_logic_vector(dac_r)
-		);
-
 
 	guest : component NeoGeo_MiST
 		port map
@@ -350,13 +332,14 @@ begin
 			VGA_B      => vga_blue(7 downto 2),
 
 			--AUDIO
-			DAC_L   => dac_l,
-			DAC_R   => dac_r,
+			I2S_BCK  => I2S_BCLK,
+			I2S_LRCK => I2S_LRCLK,
+			I2S_DATA => I2S_DATA,
+
 			AUDIO_L => sigma_l,
 			AUDIO_R => sigma_r
 
 		);
-
 
 
 	-- Pass internal signals to external SPI interface
