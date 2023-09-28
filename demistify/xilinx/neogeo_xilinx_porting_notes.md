@@ -10,13 +10,9 @@ Those files have been duplicated and modified in the Xilinx folder:
 
 * mist/mist-modules/data_io.v
 
-* mist/data_io_neogeo.v
-
 * NeoGeo.sdc
 
   
-
-NeoGeo_MiST.sv  is now unified with rest of DeMiSTify ports.
 
 ### Todo
 
