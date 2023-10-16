@@ -67,22 +67,30 @@ module NeoGeo_MiST(
 );
 
 `ifdef NO_DIRECT_UPLOAD
-localparam DIRECT_UPLOAD = 0;
+localparam bit DIRECT_UPLOAD = 0;
 `else
-localparam DIRECT_UPLOAD = 1;
+localparam bit DIRECT_UPLOAD = 1;
 `endif
 
 `ifdef USE_QSPI
-localparam QSPI = 1;
+localparam bit QSPI = 1;
 assign QDAT = 4'hZ;
 `else
-localparam QSPI = 0;
+localparam bit QSPI = 0;
 `endif
 
 `ifdef VGA_8BIT
 localparam VGA_BITS = 8;
 `else
 localparam VGA_BITS = 6;
+`endif
+
+`ifdef BIG_OSD
+localparam bit BIG_OSD = 1;
+localparam SEP = "-;";
+`else
+localparam bit BIG_OSD = 0;
+localparam SEP = "";
 `endif
 
 `ifdef VIVADO
@@ -110,12 +118,18 @@ localparam CONF_STR = {
 	"S0U,SAV,Load Memory Card;",
 	"TG,Save Memory Card;",
 `endif
+	SEP,
 `ifdef NO_CD
 	"O1,System Type,Console(AES),Arcade(MVS);",
 `else
-	"SC,CUE,Mount CD;",
 	"O12,System Type,Console(AES),Arcade(MVS),CD,CDZ;",
-
+	SEP,
+	"SC,CUE,Mount CD;",
+	"OKL,CD Speed,1x,2x,3x,4x;",
+	"OHI,CD Region,US,EU,JP,AS;",
+	"OJ,CD Lid,Closed,Opened;",
+`endif
+	SEP,
 `ifdef CARTOPTS
 	"P1,Cart options;",
 	"P1OMO,Protection,Off,NEO-ZMC2,NEO-PVC,KOF99,GAROU,GAROUH,MSLUG3,KOF2000;",
@@ -124,11 +138,7 @@ localparam CONF_STR = {
 	"P1ORS,NEO-CMC,Off,Type-1,Type-2;",
 	"P1OT,ROMWait,Full speed,1 cycle;",
 	"P1OUV,PWait,Full speed,1 cycle,2 cycles;",
-`endif
-
-	"OKL,CD Speed,1x,2x,3x,4x;",
-	"OHI,CD Region,US,EU,JP,AS;",
-	"OJ,CD Lid,Closed,Opened;",
+	SEP,
 `endif
 	"O3,Video Mode,NTSC,PAL;",
 	"O45,Scanlines,Off,25%,50%,75%;",
@@ -252,7 +262,7 @@ wire [31:0] img_size;
 user_io #(
 	.STRLEN(($size(CONF_STR)>>3)),
 	.ROM_DIRECT_UPLOAD(DIRECT_UPLOAD),
-	.FEATURES(32'h8 | (QSPI << 2)) /* Neo-Geo CD, QSPI (optionally) */
+	.FEATURES(32'h8 | (QSPI << 2) | (BIG_OSD << 13)) /* Neo-Geo CD, QSPI (optionally) */
 	)
 user_io(
 	.clk_sys        (CLK_48M        ),
@@ -1127,7 +1137,7 @@ neogeo_top neogeo_top (
 	.ADPCMB_DATA_READY   ( ADPCMB_DATA_READY )
 );
 
-mist_video #(.COLOR_DEPTH(8), .SD_HCNT_WIDTH(9), .USE_BLANKS(1'b1), .OUT_COLOR_DEPTH(VGA_BITS)) mist_video(
+mist_video #(.COLOR_DEPTH(8), .SD_HCNT_WIDTH(9), .USE_BLANKS(1'b1), .OUT_COLOR_DEPTH(VGA_BITS), .BIG_OSD(BIG_OSD)) mist_video(
 	.clk_sys        ( CLK_48M          ),
 	.SPI_SCK        ( SPI_SCK          ),
 	.SPI_SS3        ( SPI_SS3          ),
