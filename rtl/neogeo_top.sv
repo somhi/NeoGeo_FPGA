@@ -53,7 +53,7 @@ module neogeo_top
 	output [15:0] RSOUND,
 
 	// cartridge hardware variants
-	input   [3:0] CART_PCHIP,
+	input   [2:0] CART_PCHIP,
 	input   [1:0] CART_CHIP,     // legacy option: 0 - none, 1 - PRO-CT0, 2 - Link MCU
 	input   [1:0] CMC_CHIP,      // type 1/2
 	input         ROM_WAIT,      // ROMWAIT from cart. 0 - Full speed, 1 - 1 wait cycle
@@ -546,9 +546,10 @@ wire [23:0] ADDR_MUX = DMA_RUNNING ? (({24{DMA_WR_OUT}} & DMA_ADDR_OUT) | ({24{D
 assign P2ROM_ADDR = ({24{(CD_EXT_RD | CD_EXT_WR | SRAM_RD | SRAM_WE | WRAM_RD | WRAM_WE)}} & ADDR_MUX) |
                     ({24{(CD_TR_RD_FIX | CD_TR_WR_FIX)}} & {ADDR_MUX[17:6], ADDR_MUX[3:1], ~ADDR_MUX[5], ADDR_MUX[4]}) |
                     ({24{(CD_TR_RD_SPR | CD_TR_WR_SPR)}} & {CD_BANK_SPR, ADDR_MUX[19:7], ADDR_MUX[5:2], ~ADDR_MUX[6], ADDR_MUX[1:0]}) |
-					({24{(CD_TR_RD_PCM | CD_TR_WR_PCM)}} & {CD_BANK_PCM, ADDR_MUX[19:1]}) |
-					({24{(!CART_PCHIP & !(nROMOE & nPORTOE & nSROMOE))}} & {P_BANK, ADDR_MUX[19:1], 1'b0}) |
-					NEO_PVC_P2ROM_ADDR | NEO_SMA_P2ROM_ADDR;
+                    ({24{(CD_TR_RD_PCM | CD_TR_WR_PCM)}} & {CD_BANK_PCM, ADDR_MUX[19:1]}) |
+                    ({24{(!(nROMOE & nSROMOE))}} & {ADDR_MUX[19:1], 1'b0}) |
+                    ({24{(~|CART_PCHIP & !nPORTOE)}} & {P_BANK, ADDR_MUX[19:1], 1'b0}) |
+                    ({24{!nPORTOE}} & (NEO_PVC_P2ROM_ADDR | NEO_SMA_P2ROM_ADDR));
 
 wire [15:0] CD_TR_DOUT = DMA_RUNNING ? DMA_DATA_OUT : M68K_DATA;
 assign PROM_DOUT = (CD_TR_WR_FIX | CD_TR_WR_PCM) ? {CD_TR_DOUT[7:0], CD_TR_DOUT[7:0]} : CD_TR_DOUT;
