@@ -87,10 +87,10 @@ localparam VGA_BITS = 6;
 
 `ifdef BIG_OSD
 localparam bit BIG_OSD = 1;
-localparam SEP = "-;";
+`define SEP "-;",
 `else
 localparam bit BIG_OSD = 0;
-localparam SEP = "";
+`define SEP
 `endif
 
 `ifdef VIVADO
@@ -118,18 +118,18 @@ localparam CONF_STR = {
 	"S0U,SAV,Load Memory Card;",
 	"TG,Save Memory Card;",
 `endif
-	SEP,
+	`SEP
 `ifdef NO_CD
 	"O1,System Type,Console(AES),Arcade(MVS);",
 `else
 	"O12,System Type,Console(AES),Arcade(MVS),CD,CDZ;",
-	SEP,
+	`SEP
 	"SC,CUE,Mount CD;",
 	"OKL,CD Speed,1x,2x,3x,4x;",
 	"OHI,CD Region,US,EU,JP,AS;",
 	"OJ,CD Lid,Closed,Opened;",
 `endif
-	SEP,
+	`SEP
 `ifdef CARTOPTS
 	"P1,Cart options;",
 	"P1OMO,Protection,Off,NEO-ZMC2,NEO-PVC,KOF99,GAROU,GAROUH,MSLUG3,KOF2000;",
@@ -138,7 +138,7 @@ localparam CONF_STR = {
 	"P1ORS,NEO-CMC,Off,Type-1,Type-2;",
 	"P1OT,ROMWait,Full speed,1 cycle;",
 	"P1OUV,PWait,Full speed,1 cycle,2 cycles;",
-	SEP,
+	`SEP
 `endif
 	"O3,Video Mode,NTSC,PAL;",
 	"O45,Scanlines,Off,25%,50%,75%;",
