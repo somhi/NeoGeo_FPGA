@@ -20,6 +20,26 @@ module NeoGeo_MiST(
 	input         SPI_SS3,
 	input         CONF_DATA0,
 	input         CLOCK_27,
+`ifdef USE_CLOCK_50
+	input         CLOCK_50,
+`endif
+
+`ifdef USE_HDMI
+	output        HDMI_RST,
+	output  [7:0] HDMI_R,
+	output  [7:0] HDMI_G,
+	output  [7:0] HDMI_B,
+	output        HDMI_HS,
+	output        HDMI_VS,
+	output        HDMI_PCLK,
+	output        HDMI_DE,
+	inout         HDMI_SDA,
+	inout         HDMI_SCL,
+	input         HDMI_INT,
+	output        HDMI_BCK,
+	output        HDMI_LRCK,
+	output        HDMI_AUDIO,
+`endif
 
 `ifdef USE_QSPI
 	input         QSCK,
@@ -67,22 +87,37 @@ module NeoGeo_MiST(
 );
 
 `ifdef NO_DIRECT_UPLOAD
-localparam DIRECT_UPLOAD = 0;
+localparam bit DIRECT_UPLOAD = 0;
 `else
-localparam DIRECT_UPLOAD = 1;
+localparam bit DIRECT_UPLOAD = 1;
 `endif
 
 `ifdef USE_QSPI
-localparam QSPI = 1;
+localparam bit QSPI = 1;
 assign QDAT = 4'hZ;
 `else
-localparam QSPI = 0;
+localparam bit QSPI = 0;
 `endif
 
 `ifdef VGA_8BIT
 localparam VGA_BITS = 8;
 `else
 localparam VGA_BITS = 6;
+`endif
+
+`ifdef USE_HDMI
+localparam bit HDMI = 1;
+assign HDMI_RST = 1'b1;
+`else
+localparam bit HDMI = 0;
+`endif
+
+`ifdef BIG_OSD
+localparam bit BIG_OSD = 1;
+`define SEP "-;",
+`else
+localparam bit BIG_OSD = 0;
+`define SEP
 `endif
 
 `ifdef VIVADO
@@ -110,12 +145,18 @@ localparam CONF_STR = {
 	"S0U,SAV,Load Memory Card;",
 	"TG,Save Memory Card;",
 `endif
+	`SEP
 `ifdef NO_CD
 	"O1,System Type,Console(AES),Arcade(MVS);",
 `else
-	"SC,CUE,Mount CD;",
 	"O12,System Type,Console(AES),Arcade(MVS),CD,CDZ;",
-
+	`SEP
+	"SC,CUE,Mount CD;",
+	"OKL,CD Speed,1x,2x,3x,4x;",
+	"OHI,CD Region,US,EU,JP,AS;",
+	"OJ,CD Lid,Closed,Opened;",
+`endif
+	`SEP
 `ifdef CARTOPTS
 	"P1,Cart options;",
 	"P1OMO,Protection,Off,NEO-ZMC2,NEO-PVC,KOF99,GAROU,GAROUH,MSLUG3,KOF2000;",
@@ -124,11 +165,7 @@ localparam CONF_STR = {
 	"P1ORS,NEO-CMC,Off,Type-1,Type-2;",
 	"P1OT,ROMWait,Full speed,1 cycle;",
 	"P1OUV,PWait,Full speed,1 cycle,2 cycles;",
-`endif
-
-	"OKL,CD Speed,1x,2x,3x,4x;",
-	"OHI,CD Region,US,EU,JP,AS;",
-	"OJ,CD Lid,Closed,Opened;",
+	`SEP
 `endif
 	"O3,Video Mode,NTSC,PAL;",
 	"O45,Scanlines,Off,25%,50%,75%;",
@@ -176,7 +213,7 @@ wire        spr_en = ~status[15];
 assign LED = ~ioctl_downl;
 assign SDRAM_CKE = 1; 
 
-wire CLK_96M, CLK_48M;
+wire CLK_96M, CLK_48M, CLK_24M;
 wire pll_locked;
 
 
@@ -211,11 +248,18 @@ pll_mist pll(
 `else
 assign SDRAM_CLK = CLK_96M;
 pll_mist pll(
+`ifdef USE_CLOCK_50
+	.inclk0(CLOCK_50),
+`else
 	.inclk0(CLOCK_27),
+`endif
 //	.c0(SDRAM_CLK),
 	.c0(CLK_96M),
 //	.c1(CLK_96M),
 	.c2(CLK_48M),
+`ifdef USE_HDMI
+	.c3(CLK_24M),
+`endif
 	.locked(pll_locked)
 	);
 `endif
@@ -249,10 +293,21 @@ wire        sd_buff_rd;
 wire  [1:0] img_mounted;
 wire [31:0] img_size;
 
+`ifdef USE_HDMI
+wire        i2c_start;
+wire        i2c_read;
+wire  [6:0] i2c_addr;
+wire  [7:0] i2c_subaddr;
+wire  [7:0] i2c_dout;
+wire  [7:0] i2c_din;
+wire        i2c_ack;
+wire        i2c_end;
+`endif
+
 user_io #(
 	.STRLEN(($size(CONF_STR)>>3)),
 	.ROM_DIRECT_UPLOAD(DIRECT_UPLOAD),
-	.FEATURES(32'h8 | (QSPI << 2)) /* Neo-Geo CD, QSPI (optionally) */
+	.FEATURES(32'h8 | (QSPI << 2) | (BIG_OSD << 13) | (HDMI << 14)) /* Neo-Geo CD, QSPI (optionally) */
 	)
 user_io(
 	.clk_sys        (CLK_48M        ),
@@ -282,7 +337,16 @@ user_io(
 	.mouse_strobe   (mouse_strobe   ),
 	.mouse_flags    (mouse_flags    ),
 	.status         (status         ),
-
+`ifdef USE_HDMI
+	.i2c_start      (i2c_start      ),
+	.i2c_read       (i2c_read       ),
+	.i2c_addr       (i2c_addr       ),
+	.i2c_subaddr    (i2c_subaddr    ),
+	.i2c_dout       (i2c_dout       ),
+	.i2c_din        (i2c_din        ),
+	.i2c_ack        (i2c_ack        ),
+	.i2c_end        (i2c_end        ),
+`endif
 	.clk_sd         (CLK_48M        ),
 	.sd_conf        (1'b0           ),
 	.sd_sdhc        (1'b1           ),
@@ -945,7 +1009,11 @@ sdram_2w_cl2 #(96) sdram
 wire CLK2_96M;
 wire pll2_locked;
 pll_mist pll2(
+`ifdef USE_CLOCK_50
+	.inclk0(CLOCK_50),
+`else
 	.inclk0(CLOCK_27),
+`endif
 	.c0(CLK2_96M),
 	.locked(pll2_locked)
 	);
@@ -1127,7 +1195,7 @@ neogeo_top neogeo_top (
 	.ADPCMB_DATA_READY   ( ADPCMB_DATA_READY )
 );
 
-mist_video #(.COLOR_DEPTH(8), .SD_HCNT_WIDTH(9), .USE_BLANKS(1'b1), .OUT_COLOR_DEPTH(VGA_BITS)) mist_video(
+mist_video #(.COLOR_DEPTH(8), .SD_HCNT_WIDTH(9), .USE_BLANKS(1'b1), .OUT_COLOR_DEPTH(VGA_BITS), .BIG_OSD(BIG_OSD)) mist_video(
 	.clk_sys        ( CLK_48M          ),
 	.SPI_SCK        ( SPI_SCK          ),
 	.SPI_SS3        ( SPI_SS3          ),
@@ -1198,7 +1266,59 @@ i2s i2s (
 	.right_chan(au_right[16:1])
 );
 `endif
-	
+
+`ifdef USE_HDMI
+i2c_master #(48_000_000) i2c_master (
+	.CLK         (CLK_48M),
+	.START       (i2c_start),
+	.READ        (i2c_read),
+	.I2C_ADDR    (i2c_addr),
+	.I2C_SUBADDR (i2c_subaddr),
+	.I2C_WDATA   (i2c_dout),
+	.I2C_RDATA   (i2c_din),
+	.END         (i2c_end),
+	.ACK         (i2c_ack),
+
+	//I2C bus
+	.I2C_SCL     (HDMI_SCL),
+	.I2C_SDA     (HDMI_SDA)
+);
+
+wire HDMI_VB, HDMI_HB;
+
+mist_video #(.COLOR_DEPTH(8), .SD_HCNT_WIDTH(10), .USE_BLANKS(1), .OUT_COLOR_DEPTH(8), .BIG_OSD(BIG_OSD), .VIDEO_CLEANER(1)) hdmi_video(
+	.clk_sys        ( CLK_24M          ),
+	.SPI_SCK        ( SPI_SCK          ),
+	.SPI_SS3        ( SPI_SS3          ),
+	.SPI_DI         ( SPI_DI           ),
+	.R              ( R                ),
+	.G              ( G                ),
+	.B              ( B                ),
+	.HBlank         ( HBlank           ),
+	.VBlank         ( VBlank           ),
+	.HSync          ( HSync            ),
+	.VSync          ( VSync            ),
+	.VGA_R          ( HDMI_R           ),
+	.VGA_G          ( HDMI_G           ),
+	.VGA_B          ( HDMI_B           ),
+	.VGA_VS         ( HDMI_VS          ),
+	.VGA_HS         ( HDMI_HS          ),
+	.VGA_HB         ( HDMI_HB          ),
+	.VGA_VB         ( HDMI_VB          ),
+	.rotate         ( { orientation[1], rotate } ),
+	.ce_divider     ( 3'd1             ),
+	.scandoubler_disable( 1'b0         ),
+	.scanlines      ( scanlines        ),
+	.blend          ( blend            ),
+	.ypbpr          ( 1'b0             ),
+	.no_csync       ( 1'b1             )
+	);
+
+assign HDMI_DE = ~(HDMI_HB | HDMI_VB);
+assign HDMI_PCLK = CLK_24M;
+
+`endif
+
 wire m_up, m_down, m_left, m_right, m_fireA, m_fireB, m_fireC, m_fireD, m_fireE, m_fireF;
 wire m_up2, m_down2, m_left2, m_right2, m_fire2A, m_fire2B, m_fire2C, m_fire2D, m_fire2E, m_fire2F;
 wire m_tilt, m_coin1, m_coin2, m_coin3, m_coin4, m_one_player, m_two_players, m_three_players, m_four_players;

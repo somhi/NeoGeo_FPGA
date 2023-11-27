@@ -247,7 +247,7 @@ set_global_assignment -name SDC_FILE NeoGeo.sdc
 set_global_assignment -name SYSTEMVERILOG_FILE NeoGeo_MiST.sv
 set_global_assignment -name VERILOG_FILE data_io_neogeo.v
 set_global_assignment -name QIP_FILE "mist-modules/mist.qip"
-set_global_assignment -name QIP_FILE pll_mist.qip
+set_global_assignment -name QIP_FILE cyc3/pll_mist.qip
 set_global_assignment -name QIP_FILE ../rtl/neogeo.qip
 set_global_assignment -name SIGNALTAP_FILE output_files/cpu.stp
 set_global_assignment -name SIGNALTAP_FILE output_files/cpu2.stp
