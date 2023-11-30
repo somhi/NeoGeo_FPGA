@@ -1,0 +1,40 @@
+mainfile: mistex/neogeo.sv
+use-template-sys: True
+
+defines:
+  MISTER_FB: 1
+
+sourcedirs:
+  - sys
+  - mister/rtl
+  - rtl
+  - rtl/jt12/hdl
+  - rtl/jt12/hdl/mixer
+  - rtl/jt12/jt49/hdl
+  - rtl/jt12/hdl/adpcm
+  - rtl/video_sync
+  - rtl/cd
+  - rtl/io_sync
+  - rtl/cells
+  - rtl/mem
+  - rtl/cpu
+  - rtl/cpu/FX68K
+  - rtl/cpu/T80
+  
+quartus:
+  sourcefiles:
+    - mister/NeoGeo.sdc
+    - mistex/rtl/pll_0002.v        
+    - sys/sys_top.sdc
+    - sys/pll_hdmi_adj.vhd
+    - sys/altera_pll_reconfig_top.v
+    - sys/altera_pll_reconfig_core.v
+    - sys/pll_cfg.v
+    - sys/pll_audio_0002.v
+    - sys/pll_hdmi_0002.v
+    - sys/hdmi_config.sv
+
+vivado:
+  sourcefiles:
+    - mistex/rtl/pll_0002-xilinx7.v
+    - sys/pll_audio_0002-xilinx7.v
