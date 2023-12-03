@@ -2,12 +2,12 @@ mainfile: mistex/neogeo.sv
 use-template-sys: True
 
 defines:
-  MISTER_FB: 1
+  #MISTER_FB: 1
+  VIVADO: 1
 
 sourcedirs:
   - sys
   - mister/rtl
-  - rtl
   - rtl/jt12/hdl
   - rtl/jt12/hdl/mixer
   - rtl/jt12/jt49/hdl
@@ -24,7 +24,12 @@ sourcedirs:
 quartus:
   sourcefiles:
     - mister/NeoGeo.sdc
-    - mistex/rtl/pll_0002.v        
+    - mister/rtl/pll.v
+    - mister/rtl/pll_0002-xilinx7.v
+    - rtl/mem/sdram_4w_cl3.sv   
+    - rtl/mem/sdram.sv 
+    - rtl/mem/sdram_mux.sv
+    - rtl/mem/dpram.v 
     - sys/sys_top.sdc
     - sys/pll_hdmi_adj.vhd
     - sys/altera_pll_reconfig_top.v
@@ -36,5 +41,13 @@ quartus:
 
 vivado:
   sourcefiles:
+    - mistex/rtl/pll.v
     - mistex/rtl/pll_0002-xilinx7.v
     - sys/pll_audio_0002-xilinx7.v
+    - mistex/sdram_4w_cl3.sv        
+    - mistex/sdram.sv             
+    - mistex/sdram_mux.sv             
+    - mistex/dpram.v
+
+
+

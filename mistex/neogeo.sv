@@ -329,6 +329,19 @@ wire CLK_48M, CLK_96M;
 assign CLK_VIDEO = CLK_48M;
 wire clk_sys = CLK_48M;
 
+
+`ifdef VIVADO
+pll pll
+(
+	.refclk(CLK_50M),
+	.rst(0),
+	.outclk_0(CLK_96M),
+	.outclk_1(CLK_48M),
+	.locked(locked)
+);
+
+`else
+
 pll pll
 (
 	.refclk(CLK_50M),
@@ -339,12 +352,6 @@ pll pll
 	.reconfig_from_pll(reconfig_from_pll),
 	.locked(locked)
 );
-
-reg CLK_EN_24M_N, CLK_EN_24M_P;
-always @(posedge CLK_48M) begin
-	CLK_EN_24M_N <= ~CLK_EN_24M_N;
-	CLK_EN_24M_P <= CLK_EN_24M_N;
-end
 
 wire [63:0] reconfig_to_pll;
 wire [63:0] reconfig_from_pll;
@@ -402,6 +409,15 @@ always @(posedge CLK_50M) begin
 		endcase
 	end
 end
+
+`endif
+
+reg CLK_EN_24M_N, CLK_EN_24M_P;
+always @(posedge CLK_48M) begin
+	CLK_EN_24M_N <= ~CLK_EN_24M_N;
+	CLK_EN_24M_P <= CLK_EN_24M_N;
+end
+
 
 // The watchdog should output nRESET but it makes video sync stop for a moment, so the
 // MiSTer OSD jumps around. Provide an indication for devs that a watchdog reset happened ?
@@ -779,7 +795,7 @@ always @(posedge clk_sys) begin
 	end
 end
 
-wire [1:0] CD_REGION;
+reg [1:0] CD_REGION;
 always @(status[11:10])
 begin
 	// CD Region code remap:
@@ -1151,8 +1167,10 @@ always @(posedge CLK_96M) if (~nRESET) sdr_pri_128_64 <= {~sdram_sz[14] & &sdram
 wire sdram1_ready, sdram2_ready;
 wire [15:0] sdram1_dout, sdram2_dout;
 
+assign SDRAM_CLK = ~CLK_96M;
+
 sdram ram1(
-	.SDRAM_CLK(SDRAM_CLK),
+	// .SDRAM_CLK(SDRAM_CLK),
 	.SDRAM_CKE(SDRAM_CKE),
 	.SDRAM_A(SDRAM_A),
 	.SDRAM_BA(SDRAM_BA),
