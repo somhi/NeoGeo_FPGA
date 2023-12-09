@@ -55,6 +55,9 @@ set_input_delay -clock [get_clocks $sdram2_clk] -reference_pin [get_ports {SDRAM
 set_output_delay -clock [get_clocks $sdram2_clk] -reference_pin [get_ports {SDRAM2_CLK}] -max 1.5 [get_ports {SDRAM2_D* SDRAM2_A* SDRAM2_BA* SDRAM2_n* SDRAM2_CKE}]
 set_output_delay -clock [get_clocks $sdram2_clk] -reference_pin [get_ports {SDRAM2_CLK}] -min -0.8 [get_ports {SDRAM2_D* SDRAM2_A* SDRAM2_BA* SDRAM2_n* SDRAM2_CKE}]
 
+#set_output_delay -clock [get_clocks $vid_clk] -reference_pin [get_ports {HDMI_PCLK}] -max 1.0 [get_ports {HDMI_R[*] HDMI_G[*] HDMI_B[*] HDMI_HS HDMI_VS HDMI_DE}]
+#set_output_delay -clock [get_clocks $vid_clk] -reference_pin [get_ports {HDMI_PCLK}] -min -0.5 [get_ports {HDMI_R[*] HDMI_G[*] HDMI_B[*] HDMI_HS HDMI_VS HDMI_DE}]
+
 #**************************************************************
 # Set Clock Groups
 #**************************************************************
@@ -67,7 +70,7 @@ set_clock_groups -asynchronous -group [get_clocks {SPI_SCK}] -group [get_clocks 
 # Set False Path
 #**************************************************************
 
-
+set_false_path -to [get_ports {HDMI_R[*] HDMI_G[*] HDMI_B[*] HDMI_HS HDMI_VS HDMI_DE}]
 
 #**************************************************************
 # Set Multicycle Path

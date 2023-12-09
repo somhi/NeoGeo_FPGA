@@ -36,9 +36,6 @@ module NeoGeo_MiST(
 	inout         HDMI_SDA,
 	inout         HDMI_SCL,
 	input         HDMI_INT,
-	output        HDMI_BCK,
-	output        HDMI_LRCK,
-	output        HDMI_AUDIO,
 `endif
 
 `ifdef USE_QSPI
@@ -79,6 +76,9 @@ module NeoGeo_MiST(
 	output        I2S_BCK,
 	output        I2S_LRCK,
 	output        I2S_DATA,
+`endif
+`ifdef SPDIF_AUDIO
+	output        SPDIF,
 `endif
 
 	input         UART_RX,
@@ -213,7 +213,7 @@ wire        spr_en = ~status[15];
 assign LED = ~ioctl_downl;
 assign SDRAM_CKE = 1; 
 
-wire CLK_96M, CLK_48M, CLK_24M;
+wire CLK_96M, CLK_48M;
 wire pll_locked;
 
 
@@ -257,11 +257,9 @@ pll_mist pll(
 	.c0(CLK_96M),
 //	.c1(CLK_96M),
 	.c2(CLK_48M),
-`ifdef USE_HDMI
-	.c3(CLK_24M),
-`endif
 	.locked(pll_locked)
 	);
+
 `endif
 
 wire [31:0] status;
@@ -1243,20 +1241,10 @@ dacr(
 	);
 
 `ifdef I2S_AUDIO
-wire i2s_ce;
-CEGen CEGEN_BCLK
-(
-	.CLK(CLK_48M),
-	.RST_N(~reset),
-	.IN_CLK(48000000),
-	.OUT_CLK(1536000),
-	.CE(i2s_ce)
-);
-
 i2s i2s (
-	.reset(reset),
+	.reset(1'b0),
 	.clk(CLK_48M),
-	.ce(i2s_ce),
+	.clk_rate(32'd48_000_000),
 
 	.sclk(I2S_BCK),
 	.lrclk(I2S_LRCK),
@@ -1267,27 +1255,36 @@ i2s i2s (
 );
 `endif
 
+`ifdef SPDIF_AUDIO
+spdif spdif
+(
+	.clk_i(CLK_48M),
+	.rst_i(reset),
+	.clk_rate_i(32'd48_000_000),
+	.spdif_o(SPDIF),
+	.sample_i({au_right[16:1], au_left[16:1]})
+);
+`endif
+
 `ifdef USE_HDMI
 i2c_master #(48_000_000) i2c_master (
 	.CLK         (CLK_48M),
-	.START       (i2c_start),
-	.READ        (i2c_read),
+	.I2C_START   (i2c_start),
+	.I2C_READ    (i2c_read),
 	.I2C_ADDR    (i2c_addr),
 	.I2C_SUBADDR (i2c_subaddr),
 	.I2C_WDATA   (i2c_dout),
 	.I2C_RDATA   (i2c_din),
-	.END         (i2c_end),
-	.ACK         (i2c_ack),
+	.I2C_END     (i2c_end),
+	.I2C_ACK     (i2c_ack),
 
 	//I2C bus
 	.I2C_SCL     (HDMI_SCL),
 	.I2C_SDA     (HDMI_SDA)
 );
 
-wire HDMI_VB, HDMI_HB;
-
-mist_video #(.COLOR_DEPTH(8), .SD_HCNT_WIDTH(10), .USE_BLANKS(1), .OUT_COLOR_DEPTH(8), .BIG_OSD(BIG_OSD), .VIDEO_CLEANER(1)) hdmi_video(
-	.clk_sys        ( CLK_24M          ),
+mist_video #(.COLOR_DEPTH(8), .SD_HCNT_WIDTH(9), .USE_BLANKS(1), .OUT_COLOR_DEPTH(8), .BIG_OSD(BIG_OSD), .VIDEO_CLEANER(1)) hdmi_video(
+	.clk_sys        ( CLK_48M          ),
 	.SPI_SCK        ( SPI_SCK          ),
 	.SPI_SS3        ( SPI_SS3          ),
 	.SPI_DI         ( SPI_DI           ),
@@ -1303,10 +1300,9 @@ mist_video #(.COLOR_DEPTH(8), .SD_HCNT_WIDTH(10), .USE_BLANKS(1), .OUT_COLOR_DEP
 	.VGA_B          ( HDMI_B           ),
 	.VGA_VS         ( HDMI_VS          ),
 	.VGA_HS         ( HDMI_HS          ),
-	.VGA_HB         ( HDMI_HB          ),
-	.VGA_VB         ( HDMI_VB          ),
+	.VGA_DE         ( HDMI_DE          ),
 	.rotate         ( { orientation[1], rotate } ),
-	.ce_divider     ( 3'd1             ),
+	.ce_divider     ( 3'd7             ),
 	.scandoubler_disable( 1'b0         ),
 	.scanlines      ( scanlines        ),
 	.blend          ( blend            ),
@@ -1314,8 +1310,7 @@ mist_video #(.COLOR_DEPTH(8), .SD_HCNT_WIDTH(10), .USE_BLANKS(1), .OUT_COLOR_DEP
 	.no_csync       ( 1'b1             )
 	);
 
-assign HDMI_DE = ~(HDMI_HB | HDMI_VB);
-assign HDMI_PCLK = CLK_24M;
+assign HDMI_PCLK = CLK_48M;
 
 `endif
 
