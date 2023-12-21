@@ -24,8 +24,9 @@ sourcedirs:
 quartus:
   sourcefiles:
     - mister/NeoGeo.sdc
-    - mister/rtl/pll.v
-    - mister/rtl/pll_0002-xilinx7.v
+    - mistex/rtl/pll_0002.v
+    - sys/pll_audio_0002.v
+    - sys/pll_hdmi_0002.v    
     - rtl/mem/sdram_4w_cl3.sv   
     - rtl/mem/sdram.sv 
     - rtl/mem/sdram_mux.sv
@@ -35,13 +36,10 @@ quartus:
     - sys/altera_pll_reconfig_top.v
     - sys/altera_pll_reconfig_core.v
     - sys/pll_cfg.v
-    - sys/pll_audio_0002.v
-    - sys/pll_hdmi_0002.v
     - sys/hdmi_config.sv
 
 vivado:
   sourcefiles:
-    - mistex/rtl/pll.v
     - mistex/rtl/pll_0002-xilinx7.v
     - sys/pll_audio_0002-xilinx7.v
     - sys/pll_hdmi_0002-xilinx7.v
