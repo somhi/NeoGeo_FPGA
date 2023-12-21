@@ -95,14 +95,12 @@ module cpram
 );
 
 reg [8:0] rdaddress;
-reg [6:0] wraddress;
+reg [8:0] wraddress;
 
-reg     [63:0] ram [8:0];
-
-wire      enable_a=1'b1, enable_b=1'b1;
+reg     [15:0] ram [0:511];
 
 always @(posedge clock) begin
-	if(wr) wraddress <= wraddress + 1'd1;
+	if(wr) wraddress <= wraddress + 3'd4;
 	if(rd) rdaddress <= rdaddress + 1'd1;
 
 	if(wr) rdaddress <= 0;
@@ -114,16 +112,20 @@ always @(posedge clock) begin
 	end
 end
 
-
 always @(posedge clock) begin
-    if (enable_a) begin
-        if (wr) begin
-            ram[wraddress] <= data;
-        end else
+// Port A: Write, address width: 7 bits (128 words), data width: 64 bits
+// 128 words x 64 bits/word = 8192 bits (8 Kbytes)
+	if (wr) begin
+		ram[wraddress+0] <= data[63:48];
+		ram[wraddress+1] <= data[47:32];
+		ram[wraddress+2] <= data[31:16];
+		ram[wraddress+3] <= data[15:00];
+	end
+// Port B: Read, address width: 9 bits (512 words) , data width: 16 bits
+// 512 words x 16 bits/word = 8192 bits (8 Kbytes)
+        if (rd)
             q <= ram[rdaddress];
-    end
 end
-
 
 
 endmodule
