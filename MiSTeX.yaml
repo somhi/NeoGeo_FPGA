@@ -3,7 +3,7 @@ use-template-sys: True
 
 defines:
   #MISTER_FB: 1
-  VIVADO: 1
+  DUMMY: 1
 
 sourcedirs:
   - sys
@@ -44,6 +44,7 @@ vivado:
     - mistex/rtl/pll.v
     - mistex/rtl/pll_0002-xilinx7.v
     - sys/pll_audio_0002-xilinx7.v
+    - sys/pll_hdmi_0002-xilinx7.v
     - mistex/sdram_4w_cl3.sv        
     - mistex/sdram.sv             
     - mistex/sdram_mux.sv             

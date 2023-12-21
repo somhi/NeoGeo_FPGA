@@ -330,7 +330,7 @@ assign CLK_VIDEO = CLK_48M;
 wire clk_sys = CLK_48M;
 
 
-`ifdef VIVADO
+`ifdef XILINX
 pll pll
 (
 	.refclk(CLK_50M),

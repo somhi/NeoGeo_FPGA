@@ -8,7 +8,7 @@ module NeoGeo_MiST(
 	output        AUDIO_L,
 	output        AUDIO_R,
 	input         SPI_SCK,
-`ifdef VIVADO
+`ifdef XILINX
 	output 		  CLOCK_27_buff,
 	input         SPI_DO_IN,
 	output        SPI_DO,	
@@ -120,13 +120,13 @@ localparam bit BIG_OSD = 0;
 `define SEP
 `endif
 
-`ifdef VIVADO
+`ifdef XILINX
 wire spi_do_uio;
 wire spi_do_dio;
 assign SPI_DO = CONF_DATA0 ? spi_do_dio : spi_do_uio; // DO comes from user_io when CONF_DATA0 is low
 `endif
 
-`ifdef VIVADO
+`ifdef XILINX
 `include "build_id.vh" 
 `else
 `include "build_id.v" 
@@ -219,7 +219,7 @@ wire pll_locked;
 
 `ifdef DEMISTIFY
 
-`ifdef VIVADO
+`ifdef XILINX
 pll_mist pll			// Xilinx PLL
 (
 	// Clock out ports
@@ -314,7 +314,7 @@ user_io(
 	.conf_str       (CONF_STR       ),
 	.SPI_CLK        (SPI_SCK        ),
 	.SPI_SS_IO      (CONF_DATA0     ),
-`ifdef VIVADO
+`ifdef XILINX
 	.SPI_MISO       (spi_do_uio     ),
 `else
 	.SPI_MISO       (SPI_DO         ),
@@ -384,7 +384,7 @@ data_io #(.ROM_DIRECT_UPLOAD(DIRECT_UPLOAD), .USE_QSPI(QSPI)) data_io(
 	.SPI_SS4       ( SPI_SS4      ),
 `endif
 	.SPI_DI        ( SPI_DI       ),
-`ifdef VIVADO
+`ifdef XILINX
 	.SPI_DO        ( spi_do_dio   ),
 	.SPI_DO_IN     ( SPI_DO_IN    ),
 `else
@@ -427,13 +427,13 @@ wire        CDD_COMMAND_SEND;
 wire [15:0] CD_AUDIO_L;
 wire [15:0] CD_AUDIO_R;
 
-`ifndef VIVADO	//For Vivado is needed some manual merging of SPI_DO from data_io and data_io_neogeo
+`ifndef XILINX	//For XILINX is needed some manual merging of SPI_DO from data_io and data_io_neogeo
 data_io_neogeo data_io_neogeo(
 	.clk_sys       ( CLK_48M      ),
 	.SPI_SCK       ( SPI_SCK      ),
 	.SPI_SS2       ( SPI_SS2      ),
 	.SPI_DI        ( SPI_DI       ),
-`ifdef VIVADO
+`ifdef XILINX
 	.SPI_DO        ( spi_do_dio   ),   //SPI_DO
 `else
 	.SPI_DO        ( SPI_DO       ),
