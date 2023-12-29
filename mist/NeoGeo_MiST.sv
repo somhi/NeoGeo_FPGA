@@ -236,7 +236,11 @@ pll_mist pll			// Xilinx PLL
 
 `else
 pll_mist pll(
+`ifdef USE_CLOCK_50
+	.inclk0(CLOCK_50),
+`else
 	.inclk0(CLOCK_27),
+`endif
 	.c0(SDRAM_CLK),
 //	.c0(CLK_96M),
 	.c1(CLK_96M),
